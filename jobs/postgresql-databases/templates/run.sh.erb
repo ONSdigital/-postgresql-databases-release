@@ -1,0 +1,34 @@
+#!/bin/sh
+
+set -e
+set -x
+
+PACKAGE_DIR=/var/vcap/packages/postgres-9.6.3
+
+ADMIN_USERNAME=<%= p("postgresql_databases.admin_username") %>
+ADMIN_PASSWORD=<%= p("postgresql_databases.admin_password") %>
+ADMIN_DATABASE=<%= p("postgresql_databases.admin_database") %>
+POSTGRESQL_HOST=<%= p("postgresql_databases.host") %>
+POSTGRESQL_PORT=<%= p("postgresql_databases.port") %>
+
+export PGPASSWORD="$ADMIN_PASSWORD"
+
+echo 'Creating databases'
+<% p("postgresql_databases.databases", []).each do |database| %>
+	echo "Creating user: <% database["username"] %>"
+	$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+		-c "CREATE USER <% database["username"] %> WITH ENCRYPTED PASSWORD '<% database["password"] %>' LOGIN"
+
+	echo "Creating database: <% database["username"] %>"
+	$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+		-c "CREATE DATABASE <% database["name"]%> OWNER <% database["username"] %>"
+
+	echo "Creating extensions"
+	<% @database["extensions"].each do |extension %>
+		echo "Creating extension: <% extension %>"
+		$PACKAGE_DIR/bin/psql -d "<% database["name"]" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+			-c "CREATE EXTENSION <% extension %> IF NOT EXISTS"
+	<% end %>
+<% end %>
+
+

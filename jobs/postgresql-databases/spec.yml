@@ -1,0 +1,30 @@
+---
+name: postgresql-databases
+
+templates:
+  run.sh.erb: bin/run.sh
+
+packages:
+- postgres-9.6.3
+
+provides:
+- name: postgres
+  type: database
+
+properties:
+   postgresql_databases.admin_username:
+     description: PostgreSQL Admin Username
+     default: postgres
+   postgresql_databases.admin_password:
+     description: PostgreSQL Admin Password
+   postgresql_databases.admin_database:
+     description: PostgreSQL Admin Database
+     default: postgres
+   postgresql_databases.host:
+     description: PostgreSQL Host
+   postgresql_databases.port:
+     description: PostgreSQL Port
+     default: 5432
+   postgresql_databases:
+     description: Map of PostgreSQL databases to create
+     default: {}
