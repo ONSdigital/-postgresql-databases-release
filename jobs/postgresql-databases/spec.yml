@@ -25,6 +25,6 @@ properties:
    postgresql_databases.port:
      description: PostgreSQL Port
      default: 5432
-   postgresql_databases:
+   postgresql_databases.databases:
      description: Map of PostgreSQL databases to create
      default: {}

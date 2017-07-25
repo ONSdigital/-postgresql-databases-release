@@ -1,0 +1,43 @@
+- name: create-postgresql-databases-apps
+  instances: 1
+  lifecycle: errand
+  stemcell: default
+  vm_type: micro_general
+  networks:
+  - name: cf_private
+  azs: [az1]
+  jobs:
+  - name: postgresql-databases
+    release: postgresql-databases
+    properties:
+     postgresql_databases:
+       admin_username: ((rds_apps_instance_username))
+       admin_password: ((rds_apps_instance_password))
+       admin_database: postgres
+       host: ((rds_apps_instance_address))
+       port: ((rds_apps_instance_port))
+       databases:
+       - { name: ccdb, username: ccadmin, password: ((cc_db_admin_password)), extensions: pgcrypto }
+
+- name: create-postgresql-databases-cf
+  instances: 1
+  lifecycle: errand
+  stemcell: default
+  vm_type: micro_general
+  networks:
+  - name: cf_private
+  azs: [az1]
+  jobs:
+  - name: postgresql-databases
+    release: postgresql-databases
+    properties:
+     postgresql_databases:
+       admin_username: ((rds_apps_instance_username))
+       admin_password: ((rds_apps_instance_password))
+       admin_database: postgres
+       host: ((rds_cf_instance_address))
+       port: ((rds_cf_instance_address))
+       databases:
+       - { name: ccdb, username: ccadmin, password: ((cc_db_admin_password)), extensions: pgcrypto,citext }
+       - { name: diego, username: diegoadmin, password: ((digeo_db_admin_password)), extensions: pgcrypto,citext }
+       - { name: uaadb, username: uaaadmin, password: ((uaa_db_admin_password)), extensions: pgcrypto,citext }
