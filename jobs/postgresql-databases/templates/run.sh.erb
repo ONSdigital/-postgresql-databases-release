@@ -19,13 +19,20 @@ echo 'Creating databases'
 	$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
 		-c "CREATE USER <% database["username"] %> WITH ENCRYPTED PASSWORD '<% database["password"] %>' LOGIN"
 
-	echo "Creating database: <% database["username"] %>"
+	echo "Adding user permission"
+	<% @database["options"].each do |option| %>
+		echo "... option: <% option %>"
+		$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+			-c "ALTER USER <% database["username"] %> WITH <% option %>"
+	<% end %>
+
+	echo "Creating database: <% database["name"]| %>"
 	$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
 		-c "CREATE DATABASE <% database["name"]%> OWNER <% database["username"] %>"
 
 	echo "Creating extensions"
 	<% @database["extensions"].each do |extension %>
-		echo "Creating extension: <% extension %>"
+		echo "... extension: <% extension %>"
 		$PACKAGE_DIR/bin/psql -d "<% database["name"]" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
 			-c "CREATE EXTENSION <% extension %> IF NOT EXISTS"
 	<% end %>
