@@ -2,14 +2,10 @@
 name: postgresql-databases
 
 templates:
-  run.sh.erb: bin/run.sh
+  run.erb: bin/run
 
 packages:
-- postgres-9.6.3
-
-provides:
-- name: postgres
-  type: database
+- postgres-utils-9.6.3
 
 properties:
    postgresql_databases.admin_username:

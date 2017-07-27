@@ -1,3 +1,0 @@
-[submodule "src/postgres-release"]
-	path = src/postgres-release
-	url = https://github.com/cloudfoundry/postgres-release.git
