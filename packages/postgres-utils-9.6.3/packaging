@@ -18,3 +18,5 @@ for i in psql pg_dump; do
 
 	make -C src/bin/$i install
 done
+
+make -C src/interfaces/libpq install
