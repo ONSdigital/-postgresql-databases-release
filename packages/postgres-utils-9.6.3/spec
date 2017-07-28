@@ -1,4 +1,4 @@
 ---
 name: postgres-utils-9.6.3
 files:
-  - postgres/postgresql-9.6.3.tar.gz
+  - blobs/postgresql-9.6.3.tar.gz
