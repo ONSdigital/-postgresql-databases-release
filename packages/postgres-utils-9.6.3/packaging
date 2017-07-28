@@ -3,7 +3,7 @@
 pwd
 
 echo "Extracting archive..."
-tar -zxf postgres/postgresql-*
+tar -zxf blobs/postgresql-*
 
 cd postgresql-*
 
