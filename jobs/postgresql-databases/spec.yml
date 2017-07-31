@@ -7,6 +7,10 @@ templates:
 packages:
 - postgres-utils-9.6.3
 
+provides:
+- name: postgres
+  type: database
+
 properties:
    postgresql_databases.admin_username:
      description: PostgreSQL Admin Username
