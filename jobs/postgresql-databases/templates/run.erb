@@ -14,22 +14,32 @@ export PGPASSWORD="$ADMIN_PASSWORD"
 
 echo 'Creating databases'
 <% p("postgresql_databases.databases").each do |database| %>
-	echo "Creating user: <%= database["username"] %>"
-	$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-		-c "CREATE USER <%= database["username"] %> WITH ENCRYPTED PASSWORD '<%= database["password"] %>' LOGIN"
+	<% if(database["username"]) %>
+		create_db_command = "CREATE DATABASE <%= database["name"] %> OWNER <%= database["username"] %>"
 
-	<% if(database["options"]) %>
-		echo "Adding user options"
-		<% database["options"].each do |option| %>
-			echo "... option: <%= option %>"
-			$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-				-c "ALTER USER <%= database["username"] %> WITH <%= option %>"
+		echo "Creating user: <%= database["username"] %>"
+		$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+			-c "CREATE USER <%= database["username"] %> WITH ENCRYPTED PASSWORD '<%= database["password"] %>' LOGIN"
+
+		<% if(database["options"]) %>
+			echo "Adding user options"
+			<% database["options"].each do |option| %>
+				echo "... option: <%= option %>"
+				$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+					-c "ALTER USER <%= database["username"] %> WITH <%= option %>"
+			<% end %>
 		<% end %>
+
+		echo "Creating database: <%= database["name"] %>"
+		$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+			-c "CREATE DATABASE <%= database["name"] %> OWNER <%= database["username"] %>"
+	<% else %>
+		create_db_command = "CREATE DATABASE <%= database["name"] %>"
 	<% end %>
 
 	echo "Creating database: <%= database["name"] %>"
 	$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-		-c "CREATE DATABASE <%= database["name"] %> OWNER <%= database["username"] %>"
+			-c "$create_db_command"
 
 	<% if(database["extensions"]) %>
 		echo "Creating extensions"
