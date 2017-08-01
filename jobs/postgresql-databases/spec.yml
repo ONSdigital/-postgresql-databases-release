@@ -20,6 +20,9 @@ properties:
    postgresql_databases.admin_database:
      description: PostgreSQL Admin Database
      default: postgres
+   postgresql_databases.rds:
+     description: RDS PostgreSQL Database (true/false)?
+     default: false
    postgresql_databases.host:
      description: PostgreSQL Host
    postgresql_databases.port:

@@ -1,14 +1,14 @@
 #!/bin/sh
 
-set -ex
+set -e
 
 PACKAGE_DIR=/var/vcap/packages/postgres-utils-9.6.3
 
-ADMIN_USERNAME=<%= p("postgresql_databases.admin_username") %>
-ADMIN_PASSWORD=<%= p("postgresql_databases.admin_password") %>
-ADMIN_DATABASE=<%= p("postgresql_databases.admin_database") %>
-POSTGRESQL_HOST=<%= p("postgresql_databases.host") %>
-POSTGRESQL_PORT=<%= p("postgresql_databases.port") %>
+ADMIN_USERNAME='<%= p("postgresql_databases.admin_username") %>'
+ADMIN_PASSWORD='<%= p("postgresql_databases.admin_password") %>'
+ADMIN_DATABASE='<%= p("postgresql_databases.admin_database") %>'
+POSTGRESQL_HOST='<%= p("postgresql_databases.host") %>'
+POSTGRESQL_PORT='<%= p("postgresql_databases.port") %>'
 
 export PGPASSWORD="$ADMIN_PASSWORD"
 
@@ -21,7 +21,16 @@ echo 'Creating databases'
 
 		echo "Creating user: <%= database["username"] %>"
 		$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-			-c "CREATE USER <%= database["username"] %> WITH ENCRYPTED PASSWORD '<%= database["password"] %>' LOGIN"
+			-c "CREATE ROLE <%= database["username"] %> WITH ENCRYPTED PASSWORD '<%= database["password"] %>' LOGIN"
+
+		# if(<%= p("postgresql_databases.rds") %>)
+		<% if p("postgresql_databases.rds") %>
+			echo "Assigning role to current user"
+			$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+				-c "GRANT <%= database["username"] %> TO $ADMIN_USERNAME"
+		<% end %>
+		# end
+
 
 		# if(defined(<%= database["options"] %>))
 		<% if database["options"] %>
@@ -35,10 +44,7 @@ echo 'Creating databases'
 			# end
 		<% end %>
 		# end
-
-		echo "Creating database: <%= database["name"] %>"
-		$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-			-c "CREATE DATABASE <%= database["name"] %> OWNER <%= database["username"] %>"
+	# else
 	<% else %>
 	# else
 		create_db_command="CREATE DATABASE <%= database["name"] %>"
@@ -63,5 +69,3 @@ echo 'Creating databases'
 	# end
 <% end %>
 # end
-
-
