@@ -6,6 +6,7 @@ templates:
 
 packages:
 - postgres-utils-9.6.3
+- s3cli
 
 provides:
 - name: postgres
