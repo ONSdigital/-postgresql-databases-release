@@ -28,7 +28,7 @@ S3_CONFIG_JSON='/tmp/s3-config.json"
 echo 'Generating s3cli config.json'
 cat <%=h ">$S3_CONFIG_JSON" %> <%=h "<<EOF" %>
 {
-	"bucket_name": "<% p("postgresql_databases.bucket_name") %>",
+	"bucket_name": "<%= p("postgresql_databases.bucket_name") %>",
 	"credentials_source": "<%= p("postgresql_databases.credentials_source") %>",
 	<% if p("postgresql_databases.credentials_source") == 'static' %>
 	"access_key_id": "<%= p("postgresql_databases.access_key_id") %>",
@@ -58,33 +58,36 @@ EOF
 cat "$S3_CONFIG_JSON"
 <% end %>
 
-echo 'Creating databases'
 # foreach(<%= p("postgresql_databases.databases") %>)
 <% p("postgresql_databases.databases").each do |database| %>
 	# Check if the database exists, if so we do a database dump
 	if [ -f "$S3_CONFIG_JSON" ] <%=h "&&" %> $PACKAGE_DIR//bin/psql -Atc "SELECT true FROM pg_database WHERE datname='<%= database["name"] %>'" -Upostgres | grep -qE '^true$'; then
 		BACKUP_FILE="<%= database["name" ] %>-pgdmp-$BACKUP_DATE_SUFFIX.sql"
 		BACKUP_LOCAL_DIR="/tmp"
+
+		echo 'Dumping <%= database["name"] %>
 		$PACKAGE_DIR/bin/pg_dump -x --column-inserts --serializable-deferrable <%=h ">" %>"$BACKUP_LOCAL_DIR/$BACKUP_FILE"
 
 		if $PACKAGE_DIR/bin/s3cli -c "$S3_CONFIG_JSON" exists "$BACKUP_FILE"; then
+			echo 'Removing existing backup'
 			$PACKAGE_DIR/bin/s3cli -c "$S3_CONFIG_JSON" delete "$BACKUP_FILE"
 		fi
 
 		# Copy to S3
+		echo "Copying <%= database["name"] %> dump to s3://<% p("postgresql_databases.bucket_name") %>/$BACKUP_FILE"
 		$PACKAGE_DIR/bin/s3cli -c "$S3_CONFIG_JSON" put "$BACKUP_LOCAL_DIR/$BACKUP_FILE" "$BACKUP_FILE"
 	else
 		# if(defined(<%= database["username"] %>))
 		<% if database["username"] %>
 			create_db_command="CREATE DATABASE <%= database["name"] %> OWNER <%= database["username"] %>"
 
-			echo "Creating user: <%= database["username"] %>"
+			echo 'Creating user: <%= database["username"] %>'
 			$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
 				-c "CREATE ROLE <%= database["username"] %> WITH ENCRYPTED PASSWORD '<%= database["password"] %>' LOGIN"
 
 			# if(<%= p("postgresql_databases.rds") %>)
 			<% if p("postgresql_databases.rds") %>
-				echo "Assigning role to current user"
+				echo 'Assigning role to current user'
 				$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
 					-c "GRANT <%= database["username"] %> TO $ADMIN_USERNAME"
 			<% end %>
@@ -93,10 +96,10 @@ echo 'Creating databases'
 
 			# if(defined(<%= database["options"] %>))
 			<% if database["options"] %>
-				echo "Adding user options"
+				echo 'Adding user options'
 				# foreach(<%= database["options"] %>)
 				<% database["options"].each do |option| %>
-					echo "... option: <%= option %>"
+					echo '. option: <%= option %>'
 					$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
 						-c "ALTER USER <%= database["username"] %> WITH <%= option %>"
 				<% end %>
@@ -110,16 +113,16 @@ echo 'Creating databases'
 		<% end %>
 		# end
 
-		echo "Creating database: <%= database["name"] %>"
+		echo 'Creating database: <%= database["name"] %>'
 		$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
 			-c "$create_db_command"
 
 		# if(defined(<%= database["extensions"] %>))
 		<% if database["extensions"] %>
-			echo "Creating extensions"
+			echo 'Creating extensions'
 			# foreach(<%= database["extensions"] %>)
 			<% database["extensions"].each do |extension| %>
-				echo "... extension: <%= extension %>"
+				echo ". extension: <%= extension %>"
 				$PACKAGE_DIR/bin/psql -d "<%= database["name"] %>" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
 					-c "CREATE EXTENSION IF NOT EXISTS <%= extension %>"
 			<% end %>
@@ -132,17 +135,18 @@ echo 'Creating databases'
 			# if(defined(<%= database["restore_blob"] %>)
 			<% if database["restore_blob"] %>
 				RESTORE_LOCAL_DIR="/tmp"
-				RESTORE_FILE="$RESTORE_LOCAL_DIR/<% database["restore_blob"] %>"
+				RESTORE_FILE="$RESTORE_LOCAL_DIR/<%= database["restore_blob"] %>"
 
 				# Copy from S3
 				if $PACKAGE_DIR/bin/s3cli -c "$S3_CONFIG_JSON" exists "<%= database["restore_blob"]  %>"; then
+					echo 'Copying database dump <%= p("postgresql_databases.bucket_name") %>/<% database["restore_blob"] %>'
 					$PACKAGE_DIR/bin/s3cli -c "$S3_CONFIG_JSON" get "<%= database["restore_blob"] %>" "$RESTORE_LOCAL_DIR/<% database["restore_blob"] %>"
 
-					echo "... restoring database dump from <%= database["restore_location" %> to <%= database["name"] %>"
+					echo 'Restoring database dump to <%= database["name"] %>'
 					$PACKAGE_DIR/bin/psql -d "<%= database["restore_location" %>" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "<%= database["name"] %>" \
 						<%=h "<"%>"$RESTORE_LOCAL_DIR/<% database["restore_blob"] %>"
 				else
-					echo "... remote backup does not exist"
+					echo 'Remote backup does not exist: s3://<%= p("postgresql_databases.bucket_name") %>/<% database["restore_blob"] %>'
 					exit 1
 				fi
 			<% end %>
