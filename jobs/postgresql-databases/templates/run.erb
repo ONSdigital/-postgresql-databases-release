@@ -67,12 +67,12 @@ echo 'Creating databases'
 		BACKUP_LOCAL_DIR="/tmp"
 		$PACKAGE_DIR/bin/pg_dump -x --column-inserts --serializable-deferrable <%=h ">" %>"$BACKUP_LOCAL_DIR/$BACKUP_FILE"
 
-		if $PACKAGE_DIR/s3cli -c "$S3_CONFIG_JSON" exists "$BACKUP_FILE"; then
-			$PACKAGE_DIR/s3cli -c "$S3_CONFIG_JSON" delete "$BACKUP_FILE"
+		if $PACKAGE_DIR/bin/s3cli -c "$S3_CONFIG_JSON" exists "$BACKUP_FILE"; then
+			$PACKAGE_DIR/bin/s3cli -c "$S3_CONFIG_JSON" delete "$BACKUP_FILE"
 		fi
 
 		# Copy to S3
-		$PACKAGE_DIR/s3cli -c "$S3_CONFIG_JSON" put "$BACKUP_LOCAL_DIR/$BACKUP_FILE" "$BACKUP_FILE"
+		$PACKAGE_DIR/bin/s3cli -c "$S3_CONFIG_JSON" put "$BACKUP_LOCAL_DIR/$BACKUP_FILE" "$BACKUP_FILE"
 	else
 		# if(defined(<%= database["username"] %>))
 		<% if database["username"] %>
@@ -135,8 +135,8 @@ echo 'Creating databases'
 				RESTORE_FILE="$RESTORE_LOCAL_DIR/<% database["restore_blob"] %>"
 
 				# Copy from S3
-				if $PACKAGE_DIR/s3cli -c "$S3_CONFIG_JSON" exists "<%= database["restore_blob"]  %>"; then
-					$PACKAGE_DIR/s3cli -c "$S3_CONFIG_JSON" get "<%= database["restore_blob"] %>" "$RESTORE_LOCAL_DIR/<% database["restore_blob"] %>"
+				if $PACKAGE_DIR/bin/s3cli -c "$S3_CONFIG_JSON" exists "<%= database["restore_blob"]  %>"; then
+					$PACKAGE_DIR/bin/s3cli -c "$S3_CONFIG_JSON" get "<%= database["restore_blob"] %>" "$RESTORE_LOCAL_DIR/<% database["restore_blob"] %>"
 
 					echo "... restoring database dump from <%= database["restore_location" %> to <%= database["name"] %>"
 					$PACKAGE_DIR/bin/psql -d "<%= database["restore_location" %>" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "<%= database["name"] %>" \
