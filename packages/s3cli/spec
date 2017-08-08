@@ -1,4 +1,4 @@
 ---
-name: s3cli
+name: bosh-s3cli
 files:
-- s3cli/s3cli-*-linux-amd64
+  - blobs/bosh-s3cli
