@@ -65,7 +65,7 @@ cat "$S3_CONFIG_JSON"
 			<%= ">" %>"$BACKUP_LOCAL_DIR/$BACKUP_FILE"
 
 		# Copy to S3
-		echo "Copying <%= database["name"] %> dump to s3://<% p("postgresql_databases.bucket_name") %>/$BACKUP_FILE"
+		echo "Copying <%= database["name"] %> dump to s3://<% p("postgresql_databases.bucket_name") %>/databases/$BACKUP_FILE"
 		$S3_BOSH_CLI -c "$S3_CONFIG_JSON" put "$BACKUP_LOCAL_DIR/$BACKUP_FILE" "$BACKUP_FILE"
 	else
 		# if(defined(<%= database["username"] %>))
