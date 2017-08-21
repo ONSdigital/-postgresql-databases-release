@@ -3,6 +3,7 @@
 set -ex
 
 PACKAGE_DIR=/var/vcap/packages/postgres-utils-9.6.3
+S3_BOSH_CLI=/var/vcap/packages/bosh-s3cli/bin/s3cli
 
 ADMIN_USERNAME='<%= p("postgresql_databases.admin_username") %>'
 ADMIN_PASSWORD='<%= p("postgresql_databases.admin_password") %>'
@@ -11,22 +12,12 @@ POSTGRESQL_HOST='<%= p("postgresql_databases.host") %>'
 POSTGRESQL_PORT='<%= p("postgresql_databases.port") %>'
 
 export PGPASSWORD="$ADMIN_PASSWORD"
-S3_CONFIG_JSON='/tmp/s3-config.json"
-
-# if(defined(<%= p("postgresql_databases.backup_date_format_suffix") %>))
-<% if p("postgresql_databases.backup_date_format_suffix") %>
-	BACKUP_DATE_SUFFIX="`date +"<%= p("postgresql_databases.backup_date_format_suffix") %>"`"
-# else
-<%else %>
-# else
-	BACKUP_DATE_SUFFIX="`date +"%a"`"
-<% end %>
-# end
+S3_CONFIG_JSON='/tmp/s3-config.json'
 
 # if(defined(<%= p("postgresql_databases.bucket_name") %>))
 <% if p("postgresql_databases.bucket_name") %>
 echo 'Generating s3cli config.json'
-cat <%=h ">$S3_CONFIG_JSON" %> <%=h "<<EOF" %>
+cat <%= ">" %>"$S3_CONFIG_JSON"  <%= "<<" %>'EOF'
 {
 	"bucket_name": "<%= p("postgresql_databases.bucket_name") %>",
 	"credentials_source": "<%= p("postgresql_databases.credentials_source") %>",
@@ -34,24 +25,26 @@ cat <%=h ">$S3_CONFIG_JSON" %> <%=h "<<EOF" %>
 	"access_key_id": "<%= p("postgresql_databases.access_key_id") %>",
 	"secret_access_key": "<%= p("postgresql_databases.secret_access_key") %>",
 	<% end %>
-	<% if p("postgresql_databases.region") %>
+	<% if p("postgresql_databases.region") != '' %>
 	"region": "<%= p("postgresql_databases.region") %>",
 	<% end %>
-	<% if p("postgresql_databases.host") %>
-	"host": "<%= p("postgresql_databases.host") %>",
+	<% if ["postgresql_databases.s3_host"] != '' %>
+	"host": "<%= p("postgresql_databases.s3_host") %>",
 	<% end %>
-	<% if p("postgresql_databases.port" ) %>
-	"port": "<%= p("postgresql_databases.port") %>",
+	<% if p("postgresql_databases.s3_port" ) != '' %>
+	"port": "<%= p("postgresql_databases.s3_port") %>",
 	<% end %>
-	<% if p("postgresql_databases.signature_version") %>
+	<% if p("postgresql_databases.signature_version") != '' %>
 	"signature_version": "<%= p("postgresql_databases.signature_version") %>",
 	<% end %>
-	<% if p("postgresql_databases.sse_kms_key_id") %>
+	<% if p("postgresql_databases.sse_kms_key_id") != '' %>
 	"sse_kms_key_id": "<%= p("postgresql_databases.sse_kms_key_id") %>",
 	<% end %>
-	"server_side_encryption": "<%= p("postgresql_databases.server_side_encryption") %>",
-	"ssl_verify_peer": "<%= p("postgresql_databases.ssl_verify_peer") %>",
-	"use_ssl": "<%= p("postgresql_databases.use_ssl") %>"
+	<% if p("postgresql_databases.server_side_encryption") != '' %>
+	"server_side_encryption": <%= p("postgresql_databases.server_side_encryption") %>,
+	<% end %>
+	"ssl_verify_peer": <%= p("postgresql_databases.ssl_verify_peer") %>,
+	"use_ssl": <%= p("postgresql_databases.use_ssl") %>
 }
 EOF
 
@@ -61,24 +54,22 @@ cat "$S3_CONFIG_JSON"
 # foreach(<%= p("postgresql_databases.databases") %>)
 <% p("postgresql_databases.databases").each do |database| %>
 	# Check if the database exists, if so we do a database dump
-	if [ -f "$S3_CONFIG_JSON" ] <%=h "&&" %> $PACKAGE_DIR//bin/psql -Atc "SELECT true FROM pg_database WHERE datname='<%= database["name"] %>'" -Upostgres | grep -qE '^true$'; then
-		BACKUP_FILE="<%= database["name" ] %>-pgdmp-$BACKUP_DATE_SUFFIX.sql"
+	if [ -f "$S3_CONFIG_JSON" ] <%= "&&" %> $PACKAGE_DIR/bin/psql -Atc "SELECT true FROM pg_database WHERE datname='<%= database["name"] %>'" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" | \
+		grep -qE '^t$'; then
+
+		BACKUP_FILE='<%= database["name" ] %>-pgdmp-<%= database["name"] %>.sql'
 		BACKUP_LOCAL_DIR="/tmp"
 
-		echo 'Dumping <%= database["name"] %>
-		$PACKAGE_DIR/bin/pg_dump -x --column-inserts --serializable-deferrable <%=h ">" %>"$BACKUP_LOCAL_DIR/$BACKUP_FILE"
-
-		if $PACKAGE_DIR/bin/s3cli -c "$S3_CONFIG_JSON" exists "$BACKUP_FILE"; then
-			echo 'Removing existing backup'
-			$PACKAGE_DIR/bin/s3cli -c "$S3_CONFIG_JSON" delete "$BACKUP_FILE"
-		fi
+		echo 'Dumping <%= database["name"] %>'
+		$PACKAGE_DIR/bin/pg_dump -x --column-inserts --serializable-deferrable -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" '<%= database["name"] %>' \
+			<%= ">" %>"$BACKUP_LOCAL_DIR/$BACKUP_FILE"
 
 		# Copy to S3
 		echo "Copying <%= database["name"] %> dump to s3://<% p("postgresql_databases.bucket_name") %>/$BACKUP_FILE"
-		$PACKAGE_DIR/bin/s3cli -c "$S3_CONFIG_JSON" put "$BACKUP_LOCAL_DIR/$BACKUP_FILE" "$BACKUP_FILE"
+		$S3_BOSH_CLI -c "$S3_CONFIG_JSON" put "$BACKUP_LOCAL_DIR/$BACKUP_FILE" "$BACKUP_FILE"
 	else
 		# if(defined(<%= database["username"] %>))
-		<% if database["username"] %>
+		<% if  database["username"] %>
 			create_db_command="CREATE DATABASE <%= database["name"] %> OWNER <%= database["username"] %>"
 
 			echo 'Creating user: <%= database["username"] %>'
@@ -134,20 +125,22 @@ cat "$S3_CONFIG_JSON"
 		<% if p("postgresql_databases.bucket_name") %>
 			# if(defined(<%= database["restore_blob"] %>)
 			<% if database["restore_blob"] %>
-				RESTORE_LOCAL_DIR="/tmp"
-				RESTORE_FILE="$RESTORE_LOCAL_DIR/<%= database["restore_blob"] %>"
+				if [ -n "$create_db_command" ]; then
+					RESTORE_LOCAL_DIR="/tmp"
+					RESTORE_FILE="$RESTORE_LOCAL_DIR/<%= database["restore_blob"] %>"
 
-				# Copy from S3
-				if $PACKAGE_DIR/bin/s3cli -c "$S3_CONFIG_JSON" exists "<%= database["restore_blob"]  %>"; then
-					echo 'Copying database dump <%= p("postgresql_databases.bucket_name") %>/<% database["restore_blob"] %>'
-					$PACKAGE_DIR/bin/s3cli -c "$S3_CONFIG_JSON" get "<%= database["restore_blob"] %>" "$RESTORE_LOCAL_DIR/<% database["restore_blob"] %>"
+					# Copy from S3
+					if $S3_BOSH_CLI -c "$S3_CONFIG_JSON" exists "<%= database["restore_blob"]  %>"; then
+						echo 'Copying database dump <%= p("postgresql_databases.bucket_name") %>/<% database["restore_blob"] %>'
+						$S3_BOSH_CLI -c "$S3_CONFIG_JSON" get "<%= database["restore_blob"] %>" "$RESTORE_LOCAL_DIR/<% database["restore_blob"] %>"
 
-					echo 'Restoring database dump to <%= database["name"] %>'
-					$PACKAGE_DIR/bin/psql -d "<%= database["restore_location" %>" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "<%= database["name"] %>" \
-						<%=h "<"%>"$RESTORE_LOCAL_DIR/<% database["restore_blob"] %>"
-				else
-					echo 'Remote backup does not exist: s3://<%= p("postgresql_databases.bucket_name") %>/<% database["restore_blob"] %>'
-					exit 1
+						echo 'Restoring database dump to <%= database["name"] %>'
+						$PACKAGE_DIR/bin/psql -d "<%= database["restore_location"] %>" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "<%= database["name"] %>" \
+							<%= "<" %>$RESTORE_LOCAL_DIR/<% database["restore_blob"] %>"
+					else
+						echo 'Remote backup does not exist: s3://<%= p("postgresql_databases.bucket_name") %>/<% database["restore_blob"] %>'
+						exit 1
+					fi
 				fi
 			<% end %>
 			# end
@@ -157,4 +150,4 @@ cat "$S3_CONFIG_JSON"
 <% end %>
 # end
 
-[ -n "$S3_CONFIG_JSON" -a -f "$S3_CONFIG_JSON" ] <%=h "&&" %> rm -f "$S3_CONFIG_JSON" || :
+[ -n "$S3_CONFIG_JSON" -a -f "$S3_CONFIG_JSON" ] <%= "&&" %> rm -f "$S3_CONFIG_JSON" || :

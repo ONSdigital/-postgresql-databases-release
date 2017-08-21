@@ -6,11 +6,11 @@ templates:
 
 packages:
 - postgres-utils-9.6.3
-- s3cli
+- bosh-s3cli
 
-provides:
-- name: postgres
-  type: database
+#provides:
+#- name: postgres
+#  type: database
 
 properties:
    postgresql_databases.admin_username:
@@ -31,21 +31,27 @@ properties:
      default: 5432
    postgresql_databases.backup_date_format_suffix:
      description: PostgreSQL Dump Date Format Suffix
-     default: %FZ%T
+     default: '%FZ%T'
    postgresql_databases.bucket_name:
      description: PostgreSQL Backup Bucket Name
    postgresql_databases.credentials_source:
      description: S3 Credentials Source (static, env_or_profile or none)
+     default: env_or_profile
    postgresql_databases.access_key_id:
      description: S3 Access Key ID
+     default: ''
    postgresql_databases.secret_access_key:
      description: S3 Secret Access Key
+     default: ''
    postgresql_databases.region:
      description: S3 Region
-   postgresql_databases.host:
+     default: ''
+   postgresql_databases.s3_host:
      description: S3 Host
-   postgresql_databases.port:
+     default: ''
+   postgresql_databases.s3_port:
      description: S3 Port
+     default: ''
    postgresql_databases.ssl_verify_peer:
      description: S3 SSL Verify Peer (true/false)
      default: true
@@ -54,10 +60,13 @@ properties:
      default: true
    postgresql_databases.signature_version:
      description: S3 Signature Version
+     default: ''
    postgresql_databases.server_side_encryption:
      description: S3 Server Side Encryption (true/false)
+     default: ''
    postgresql_databases.sse_kms_key_id:
      description: S3 KMS Key ID
+     default: ''
    postgresql_databases.databases:
      description: Map of PostgreSQL databases to backup, create and/or restore
-     default: { name: "", username: "", password: "", extensions: [], restore_blob: "" }
+     default: { name: '', username: '', password: '', extensions: [], restore_blob: '' }
