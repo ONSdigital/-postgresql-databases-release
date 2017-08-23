@@ -15,7 +15,7 @@ export PGPASSWORD="$ADMIN_PASSWORD"
 S3_CONFIG_JSON='/tmp/s3-config.json'
 
 # if(defined(<%= p("postgresql_databases.bucket_name") %>))
-<% if p("postgresql_databases.bucket_name") %>
+<% if p("postgresql_databases.bucket_name") != '' %>
 echo 'Generating s3cli config.json'
 cat <%= ">" %>"$S3_CONFIG_JSON"  <%= "<<" %>'EOF'
 {

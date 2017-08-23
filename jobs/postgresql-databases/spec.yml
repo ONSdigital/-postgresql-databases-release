@@ -34,6 +34,7 @@ properties:
      default: '%FZ%T'
    postgresql_databases.bucket_name:
      description: PostgreSQL Backup Bucket Name
+     default: ''
    postgresql_databases.credentials_source:
      description: S3 Credentials Source (static, env_or_profile or none)
      default: env_or_profile
