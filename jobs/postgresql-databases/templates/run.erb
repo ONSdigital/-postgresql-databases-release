@@ -58,7 +58,7 @@ cat "$S3_CONFIG_JSON"
 		grep -qE '^t$' || [ x"<%= database["name"] %>" = x"all" ]; then
 
 		if [ x"<%= database["name"] %> = x"all" ]; then
-			DATABASES="`$PACKAGE_DIR/bin/psql -Atc "SELECT datname FROM pg_database WHERE datname != 'postgres'" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST"`"
+			DATABASES="`$PACKAGE_DIR/bin/psql -Atc "SELECT datname FROM pg_database WHERE datname NOT IN ('postgres','template0','template1')" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST"`"
 		else
 			DATABASES='<%= database["name" ] %>'
 		fi
