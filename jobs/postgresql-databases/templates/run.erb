@@ -55,19 +55,30 @@ cat "$S3_CONFIG_JSON"
 <% p("postgresql_databases.databases").each do |database| %>
 	# Check if the database exists, if so we do a database dump
 	if [ -f "$S3_CONFIG_JSON" ] <%= "&&" %> $PACKAGE_DIR/bin/psql -Atc "SELECT true FROM pg_database WHERE datname='<%= database["name"] %>'" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" | \
-		grep -qE '^t$'; then
+		grep -qE '^t$' || [ x"<%= database["name"] %>" = x"all" ]; then
 
-		BACKUP_FILE='<%= database["name" ] %>-pgdmp-<%= database["name"] %>.sql'
-		BACKUP_LOCAL_DIR="/tmp"
+		if [ x"<%= database["name"] %> = x"all" ]; then
+			DATABASES="`$PACKAGE_DIR/bin/psql -Atc "SELECT datname FROM pg_database WHERE datname != 'postgres'" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST"`"
+		else
+			DATABASES='<%= database["name" ] %>'
+		fi
 
-		echo 'Dumping <%= database["name"] %>'
-		$PACKAGE_DIR/bin/pg_dump -x --column-inserts --serializable-deferrable -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" '<%= database["name"] %>' \
-			<%= ">" %>"$BACKUP_LOCAL_DIR/$BACKUP_FILE"
+		for _db in $DATABASES; do
+			BACKUP_FILE="pgdmp-_$db.sql"
+			BACKUP_LOCAL_DIR="/tmp"
 
-		# Copy to S3
-		echo "Copying <%= database["name"] %> dump to s3://<% p("postgresql_databases.bucket_name") %>/databases/$BACKUP_FILE"
-		$S3_BOSH_CLI -c "$S3_CONFIG_JSON" put "$BACKUP_LOCAL_DIR/$BACKUP_FILE" "$BACKUP_FILE"
+			echo "Dumping $_db"
+			$PACKAGE_DIR/bin/pg_dump -x --column-inserts --serializable-deferrable -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "$_db" \
+				<%= ">" %>"$BACKUP_LOCAL_DIR/$BACKUP_FILE"
+
+			# Copy to S3
+			echo "Copying $_db dump to s3://<% p("postgresql_databases.bucket_name") %>/databases/$BACKUP_FILE"
+			$S3_BOSH_CLI -c "$S3_CONFIG_JSON" put "$BACKUP_LOCAL_DIR/$BACKUP_FILE" "databases/$BACKUP_FILE"
+		done
 	else
+		# The 'all' database name just means backup all of the databases
+		[ x"<%= database["name"] %>" = x"all" ] <%= "&&" %> continue
+
 		# if(defined(<%= database["username"] %>))
 		<% if  database["username"] %>
 			create_db_command="CREATE DATABASE <%= database["name"] %> OWNER <%= database["username"] %>"
