@@ -144,7 +144,7 @@ cat "$S3_CONFIG_JSON"
 					$S3_BOSH_CLI -c "$S3_CONFIG_JSON" get "$S3_RESTORE_LOCATION" "$RESTORE_LOCAL_FILE"
 
 					echo 'Restoring database dump to <%= database["name"] %>'
-					$PACKAGE_DIR/bin/psql -d "<%= database["restore_location"] %>" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "<%= database["name"] %>" \
+					$PACKAGE_DIR/bin/psql -d "$RESTORE_LOCAL_FILE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "<%= database["name"] %>" \
 						<%= "<" %>$RESTORE_LOCAL_FILE"
 				else
 					echo 'Remote backup does not exist: s3://$S3_RESTORE_LOCATION"
