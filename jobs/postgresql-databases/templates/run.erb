@@ -1,17 +1,15 @@
 #!/bin/sh
-
 set -ex
 
 PACKAGE_DIR=/var/vcap/packages/postgres-utils-9.6.3
 S3_BOSH_CLI=/var/vcap/packages/bosh-s3cli/bin/s3cli
 
 ADMIN_USERNAME='<%= p("postgresql_databases.admin_username") %>'
-ADMIN_PASSWORD='<%= p("postgresql_databases.admin_password") %>'
 ADMIN_DATABASE='<%= p("postgresql_databases.admin_database") %>'
 POSTGRESQL_HOST='<%= p("postgresql_databases.host") %>'
 POSTGRESQL_PORT='<%= p("postgresql_databases.port") %>'
 
-export PGPASSWORD="$ADMIN_PASSWORD"
+export PGPASSWORD='<%= p("postgresql_databases.admin_password") %>'
 S3_CONFIG_JSON='/tmp/s3-config.json'
 
 # if(defined(<%= p("postgresql_databases.bucket_name") %>))
@@ -80,7 +78,7 @@ cat "$S3_CONFIG_JSON"
 		[ x"<%= database["name"] %>" = x"all" ] <%= "&&" %> continue
 
 		# if(defined(<%= database["username"] %>))
-		<% if  database["username"] %>
+		<% if database["username"] %>
 			create_db_command="CREATE DATABASE <%= database["name"] %> OWNER <%= database["username"] %>"
 
 			echo 'Creating user: <%= database["username"] %>'
@@ -134,27 +132,25 @@ cat "$S3_CONFIG_JSON"
 
 		# if(defined(<%= p("postgresql_databases.bucket_name") %>))
 		<% if p("postgresql_databases.bucket_name") %>
-			# if(defined(<%= database["restore_blob"] %>)
-			<% if database["restore_blob"] %>
-				if [ -n "$create_db_command" ]; then
-					RESTORE_LOCAL_DIR="/tmp"
-					RESTORE_FILE="$RESTORE_LOCAL_DIR/<%= database["restore_blob"] %>"
+			if [ -n "$create_db_command" ]; then
+				RESTORE_FILE="pgdmp-<%= database["name"] %>.sql"
+				RESTORE_LOCAL_DIR="/tmp"
+				RESTORE_LOCAL_FILE="$RESTORE_LOCAL_DIR/$RESTORE_FILE"
+				S3_RESTORE_LOCATION="<%= p("postgresql_databases.bucket_name") %>/databases/$RESTORE_FILE"
 
-					# Copy from S3
-					if $S3_BOSH_CLI -c "$S3_CONFIG_JSON" exists "<%= database["restore_blob"]  %>"; then
-						echo 'Copying database dump <%= p("postgresql_databases.bucket_name") %>/<% database["restore_blob"] %>'
-						$S3_BOSH_CLI -c "$S3_CONFIG_JSON" get "<%= database["restore_blob"] %>" "$RESTORE_LOCAL_DIR/<% database["restore_blob"] %>"
+				# Copy from S3
+				if $S3_BOSH_CLI -c "$S3_CONFIG_JSON" exists "$S3_RESTORE_LOCATION"; then
+					echo "Copying database dump $S3_RESTORE_LOCATION"
+					$S3_BOSH_CLI -c "$S3_CONFIG_JSON" get "$S3_RESTORE_LOCATION" "$RESTORE_LOCAL_FILE"
 
-						echo 'Restoring database dump to <%= database["name"] %>'
-						$PACKAGE_DIR/bin/psql -d "<%= database["restore_location"] %>" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "<%= database["name"] %>" \
-							<%= "<" %>$RESTORE_LOCAL_DIR/<% database["restore_blob"] %>"
-					else
-						echo 'Remote backup does not exist: s3://<%= p("postgresql_databases.bucket_name") %>/<% database["restore_blob"] %>'
-						exit 1
-					fi
+					echo 'Restoring database dump to <%= database["name"] %>'
+					$PACKAGE_DIR/bin/psql -d "<%= database["restore_location"] %>" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "<%= database["name"] %>" \
+						<%= "<" %>$RESTORE_LOCAL_FILE"
+				else
+					echo 'Remote backup does not exist: s3://$S3_RESTORE_LOCATION"
+					exit 1
 				fi
-			<% end %>
-			# end
+			fi
 		<% end %>
 		# end
 	fi
