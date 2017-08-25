@@ -57,7 +57,7 @@ cat "$S3_CONFIG_JSON"
 	if [ -f "$S3_CONFIG_JSON" ] <%= "&&" %> $PACKAGE_DIR/bin/psql -Atc "SELECT true FROM pg_database WHERE datname='<%= database["name"] %>'" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" | \
 		grep -qE '^t$' || [ x'<%= database["name"] %>' = x'all' ]; then
 
-		if [ x"<%= database["name"] %> = x"all" ]; then
+		if [ x"<%= database["name"] %>" = x"all" ]; then
 			DATABASES="`$PACKAGE_DIR/bin/psql -Atc "SELECT datname FROM pg_database WHERE datname NOT IN ('postgres','template0','template1')" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST"`"
 		else
 			DATABASES='<%= database["name" ] %>'
@@ -148,9 +148,9 @@ cat "$S3_CONFIG_JSON"
 
 					echo 'Restoring database dump to <%= database["name"] %>'
 					$PACKAGE_DIR/bin/psql -d "$RESTORE_LOCAL_FILE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" '<%= database["name"] %>' \
-						<%= "<" %>$RESTORE_LOCAL_FILE"
+						<%= "<" %>"$RESTORE_LOCAL_FILE"
 				else
-					echo 'Remote backup does not exist: s3://$S3_RESTORE_LOCATION"
+					echo "Remote backup does not exist: s3://$S3_RESTORE_LOCATION"
 					exit 1
 				fi
 			fi
