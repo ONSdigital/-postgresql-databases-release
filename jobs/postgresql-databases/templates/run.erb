@@ -1,6 +1,8 @@
 #!/bin/sh
 set -ex
 
+cat /var/vcap/jobs/postgresql-databases/bin/run
+
 PACKAGE_DIR=/var/vcap/packages/postgres-utils-9.6.3
 S3_BOSH_CLI=/var/vcap/packages/bosh-s3cli/bin/s3cli
 
@@ -53,7 +55,7 @@ cat "$S3_CONFIG_JSON"
 <% p("postgresql_databases.databases").each do |database| %>
 	# Check if the database exists, if so we do a database dump
 	if [ -f "$S3_CONFIG_JSON" ] <%= "&&" %> $PACKAGE_DIR/bin/psql -Atc "SELECT true FROM pg_database WHERE datname='<%= database["name"] %>'" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" | \
-		grep -qE '^t$' || [ x"<%= database["name"] %>" = x"all" ]; then
+		grep -qE '^t$' || [ x'<%= database["name"] %>' = x'all' ]; then
 
 		if [ x"<%= database["name"] %> = x"all" ]; then
 			DATABASES="`$PACKAGE_DIR/bin/psql -Atc "SELECT datname FROM pg_database WHERE datname NOT IN ('postgres','template0','template1')" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST"`"
@@ -61,9 +63,10 @@ cat "$S3_CONFIG_JSON"
 			DATABASES='<%= database["name" ] %>'
 		fi
 
+		# If we are dumping multiple databases, we don't, yet, have the ability to restore them as they have unknown names
 		for _db in $DATABASES; do
 			BACKUP_FILE="pgdmp-_$db.sql"
-			BACKUP_LOCAL_DIR="/tmp"
+			BACKUP_LOCAL_DIR='/tmp'
 
 			echo "Dumping $_db"
 			$PACKAGE_DIR/bin/pg_dump -x --column-inserts --serializable-deferrable -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "$_db" \
@@ -75,11 +78,11 @@ cat "$S3_CONFIG_JSON"
 		done
 	else
 		# The 'all' database name just means backup all of the databases
-		[ x"<%= database["name"] %>" = x"all" ] <%= "&&" %> continue
+		[ x'<%= database["name"] %>' = x'all' ] <%= "&&" %> continue
 
 		# if(defined(<%= database["username"] %>))
 		<% if database["username"] %>
-			create_db_command="CREATE DATABASE <%= database["name"] %> OWNER <%= database["username"] %>"
+			create_db_command='CREATE DATABASE <%= database["name"] %> OWNER <%= database["username"] %>'
 
 			echo 'Creating user: <%= database["username"] %>'
 			$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
@@ -101,7 +104,7 @@ cat "$S3_CONFIG_JSON"
 				<% database["options"].each do |option| %>
 					echo '. option: <%= option %>'
 					$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-						-c "ALTER USER <%= database["username"] %> WITH <%= option %>"
+						-c 'ALTER USER <%= database["username"] %> WITH <%= option %>'
 				<% end %>
 				# end
 			<% end %>
@@ -109,7 +112,7 @@ cat "$S3_CONFIG_JSON"
 		# else
 		<% else %>
 		# else
-			create_db_command="CREATE DATABASE <%= database["name"] %>"
+			create_db_command='CREATE DATABASE <%= database["name"] %>'
 		<% end %>
 		# end
 
@@ -122,9 +125,9 @@ cat "$S3_CONFIG_JSON"
 			echo 'Creating extensions'
 			# foreach(<%= database["extensions"] %>)
 			<% database["extensions"].each do |extension| %>
-				echo ". extension: <%= extension %>"
+				echo '. extension: <%= extension %>'
 				$PACKAGE_DIR/bin/psql -d "<%= database["name"] %>" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-					-c "CREATE EXTENSION IF NOT EXISTS <%= extension %>"
+					-c 'CREATE EXTENSION IF NOT EXISTS <%= extension %>'
 			<% end %>
 			# end
 		<% end %>
@@ -133,8 +136,8 @@ cat "$S3_CONFIG_JSON"
 		# if(defined(<%= p("postgresql_databases.bucket_name") %>))
 		<% if p("postgresql_databases.bucket_name") %>
 			if [ -n "$create_db_command" ]; then
-				RESTORE_FILE="pgdmp-<%= database["name"] %>.sql"
-				RESTORE_LOCAL_DIR="/tmp"
+				RESTORE_FILE='pgdmp-<%= database["name"] %>.sql'
+				RESTORE_LOCAL_DIR='/tmp'
 				RESTORE_LOCAL_FILE="$RESTORE_LOCAL_DIR/$RESTORE_FILE"
 				S3_RESTORE_LOCATION="<%= p("postgresql_databases.bucket_name") %>/databases/$RESTORE_FILE"
 
@@ -144,7 +147,7 @@ cat "$S3_CONFIG_JSON"
 					$S3_BOSH_CLI -c "$S3_CONFIG_JSON" get "$S3_RESTORE_LOCATION" "$RESTORE_LOCAL_FILE"
 
 					echo 'Restoring database dump to <%= database["name"] %>'
-					$PACKAGE_DIR/bin/psql -d "$RESTORE_LOCAL_FILE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "<%= database["name"] %>" \
+					$PACKAGE_DIR/bin/psql -d "$RESTORE_LOCAL_FILE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" '<%= database["name"] %>' \
 						<%= "<" %>$RESTORE_LOCAL_FILE"
 				else
 					echo 'Remote backup does not exist: s3://$S3_RESTORE_LOCATION"
