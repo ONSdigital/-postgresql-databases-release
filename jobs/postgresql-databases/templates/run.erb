@@ -1,8 +1,6 @@
 #!/bin/sh
 set -ex
 
-cat /var/vcap/jobs/postgresql-databases/bin/run
-
 PACKAGE_DIR=/var/vcap/packages/postgres-utils-9.6.3
 S3_BOSH_CLI=/var/vcap/packages/bosh-s3cli/bin/s3cli
 
@@ -48,7 +46,6 @@ cat <%= ">" %>"$S3_CONFIG_JSON"  <%= "<<" %>'EOF'
 }
 EOF
 
-cat "$S3_CONFIG_JSON"
 <% end %>
 
 # foreach(<%= p("postgresql_databases.databases") %>)
