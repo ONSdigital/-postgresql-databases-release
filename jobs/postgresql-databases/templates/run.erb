@@ -65,11 +65,11 @@ cat "$S3_CONFIG_JSON"
 
 		# If we are dumping multiple databases, we don't, yet, have the ability to restore them as they have unknown names
 		for _db in $DATABASES; do
-			BACKUP_FILE="pgdmp-_$db.sql"
+			BACKUP_FILE="pgdmp-$_db.sql"
 			BACKUP_LOCAL_DIR='/tmp'
 
 			echo "Dumping $_db"
-			$PACKAGE_DIR/bin/pg_dump -x --column-inserts --serializable-deferrable -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "$_db" \
+			$PACKAGE_DIR/bin/pg_dump -c --serializable-deferrable -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "$_db" \
 				<%= ">" %>"$BACKUP_LOCAL_DIR/$BACKUP_FILE"
 
 			# Copy to S3
@@ -139,18 +139,19 @@ cat "$S3_CONFIG_JSON"
 				RESTORE_FILE='pgdmp-<%= database["name"] %>.sql'
 				RESTORE_LOCAL_DIR='/tmp'
 				RESTORE_LOCAL_FILE="$RESTORE_LOCAL_DIR/$RESTORE_FILE"
-				S3_RESTORE_LOCATION="<%= p("postgresql_databases.bucket_name") %>/databases/$RESTORE_FILE"
+				RESTORE_S3_DIR="<%= p("postgresql_databases.bucket_name") %>/databases"
+				RESTORE_S3_FILE="$RESTORE_S3_DIR/$RESTORE_FILE"
 
 				# Copy from S3
-				if $S3_BOSH_CLI -c "$S3_CONFIG_JSON" exists "$S3_RESTORE_LOCATION"; then
-					echo "Copying database dump $S3_RESTORE_LOCATION"
-					$S3_BOSH_CLI -c "$S3_CONFIG_JSON" get "$S3_RESTORE_LOCATION" "$RESTORE_LOCAL_FILE"
+				if $S3_BOSH_CLI -c "$S3_CONFIG_JSON" exists "$RESTORE_S3_DIR" <%= "&&" %> $S3_BOSH_CLI -c "$S3_CONFIG_JSON" exists "$RESTORE_S3_FILE"; then
+					echo "Copying database dump $RESTORE_S3_FILE"
+					$S3_BOSH_CLI -c "$S3_CONFIG_JSON" get "$RESTORE_S3_FILE" "$RESTORE_LOCAL_FILE"
 
 					echo 'Restoring database dump to <%= database["name"] %>'
 					$PACKAGE_DIR/bin/psql -d "$RESTORE_LOCAL_FILE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" '<%= database["name"] %>' \
 						<%= "<" %>"$RESTORE_LOCAL_FILE"
 				else
-					echo "Remote backup does not exist: s3://$S3_RESTORE_LOCATION"
+					echo "Remote backup does not exist: s3://$RESTORE_S3_FILE"
 					exit 1
 				fi
 			fi
