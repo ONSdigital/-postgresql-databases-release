@@ -134,13 +134,11 @@ EOF
 		<% if p("postgresql_databases.bucket_name") %>
 			if [ -n "$create_db_command" ]; then
 				RESTORE_FILE='pgdmp-<%= database["name"] %>.sql'
-				RESTORE_LOCAL_DIR='/tmp'
-				RESTORE_LOCAL_FILE="$RESTORE_LOCAL_DIR/$RESTORE_FILE"
-				RESTORE_S3_DIR="<%= p("postgresql_databases.bucket_name") %>/databases"
-				RESTORE_S3_FILE="$RESTORE_S3_DIR/$RESTORE_FILE"
+				RESTORE_LOCAL_FILE="/tmp/$RESTORE_FILE"
+				RESTORE_S3_DIR="<%= p("postgresql_databases.bucket_name") %>/databases/$RESTORE_FILE"
 
 				# Copy from S3
-				if $S3_BOSH_CLI -c "$S3_CONFIG_JSON" exists "$RESTORE_S3_DIR" <%= "&&" %> $S3_BOSH_CLI -c "$S3_CONFIG_JSON" exists "$RESTORE_S3_FILE"; then
+				if $S3_BOSH_CLI -c "$S3_CONFIG_JSON" exists "$RESTORE_S3_FILE"; then
 					echo "Copying database dump $RESTORE_S3_FILE"
 					$S3_BOSH_CLI -c "$S3_CONFIG_JSON" get "$RESTORE_S3_FILE" "$RESTORE_LOCAL_FILE"
 
@@ -149,7 +147,6 @@ EOF
 						<%= "<" %>"$RESTORE_LOCAL_FILE"
 				else
 					echo "Remote backup does not exist: s3://$RESTORE_S3_FILE"
-					exit 1
 				fi
 			fi
 		<% end %>
