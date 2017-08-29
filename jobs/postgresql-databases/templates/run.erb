@@ -135,7 +135,7 @@ EOF
 			if [ -n "$create_db_command" ]; then
 				RESTORE_FILE='pgdmp-<%= database["name"] %>.sql'
 				RESTORE_LOCAL_FILE="/tmp/$RESTORE_FILE"
-				RESTORE_S3_DIR="<%= p("postgresql_databases.bucket_name") %>/databases/$RESTORE_FILE"
+				RESTORE_S3_FILE="<%= p("postgresql_databases.bucket_name") %>/databases/$RESTORE_FILE"
 
 				# Copy from S3
 				if $S3_BOSH_CLI -c "$S3_CONFIG_JSON" exists "$RESTORE_S3_FILE"; then
