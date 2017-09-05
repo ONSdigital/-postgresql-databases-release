@@ -66,7 +66,7 @@ EOF
 			BACKUP_LOCAL_DIR='/tmp'
 
 			echo "Dumping $_db"
-			$PACKAGE_DIR/bin/pg_dump -c --serializable-deferrable -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "$_db" \
+			$PACKAGE_DIR/bin/pg_dump --serializable-deferrable -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "$_db" \
 				<%= ">" %>"$BACKUP_LOCAL_DIR/$BACKUP_FILE"
 
 			# Copy to S3
@@ -143,7 +143,7 @@ EOF
 					$S3_BOSH_CLI -c "$S3_CONFIG_JSON" get "$RESTORE_S3_FILE" "$RESTORE_LOCAL_FILE"
 
 					echo 'Restoring database dump to <%= database["name"] %>'
-					$PACKAGE_DIR/bin/psql -d "$RESTORE_LOCAL_FILE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" '<%= database["name"] %>' \
+					$PACKAGE_DIR/bin/psql -d '<%= database["name"] %>' "$RESTORE_LOCAL_FILE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
 						<%= "<" %>"$RESTORE_LOCAL_FILE"
 				else
 					echo "Remote backup does not exist: s3://$RESTORE_S3_FILE"
