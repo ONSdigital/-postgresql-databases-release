@@ -1,3 +1,4 @@
 blobs/**
 .dev_builds/**
 dev_releases/**
+config/blobs.yml
