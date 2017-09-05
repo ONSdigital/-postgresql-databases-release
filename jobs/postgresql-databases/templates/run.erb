@@ -81,9 +81,17 @@ EOF
 		<% if database["username"] %>
 			create_db_command='CREATE DATABASE <%= database["name"] %> OWNER <%= database["username"] %>'
 
-			echo 'Creating user: <%= database["username"] %>'
-			$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-				-c "CREATE ROLE <%= database["username"] %> WITH ENCRYPTED PASSWORD '<%= database["password"] %>' LOGIN"
+			 if $PACKAGE_DIR/bin/psql -Atc "SELECT true FROM pg_roles WHERE rolname='<%= database["username"] %>'" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" | \
+                grep -qE '^t$'; then
+
+				echo 'Ensuring user has the correct password: <%= database["username"] %>'
+				$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+					-c "ALTER ROLE <%= database["username"] %> WITH ENCRYPTED PASSWORD '<%= database["password"] %>' LOGIN"
+			else
+				echo 'Creating user: <%= database["username"] %>'
+				$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+					-c "CREATE ROLE <%= database["username"] %> WITH ENCRYPTED PASSWORD '<%= database["password"] %>' LOGIN"
+			fi
 
 			# if(<%= p("postgresql_databases.rds") %>)
 			<% if p("postgresql_databases.rds") %>
