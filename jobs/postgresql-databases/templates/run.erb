@@ -53,90 +53,89 @@ EOF
 	# Check if the database exists, if so we do a database dump
 	if [ -f "$S3_CONFIG_JSON" ] <%= "&&" %> $PACKAGE_DIR/bin/psql -Atc "SELECT true FROM pg_database WHERE datname='<%= database["name"] %>'" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" | \
 		grep -qE '^t$' || [ x'<%= database["name"] %>' = x'all' ]; then
+	
+		BACKUP_LOCAL_DIR='/tmp'
+		BACKUP_FILE='pgdmp-<%= database["name" ] %>.sql'
 
 		if [ x"<%= database["name"] %>" = x"all" ]; then
-			DATABASES="`$PACKAGE_DIR/bin/psql -Atc "SELECT datname FROM pg_database WHERE datname NOT IN ('postgres','template0','template1')" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST"`"
+
+			echo "Dumping all databases"
+			$PACKAGE_DIR/bin/pg_dumpall --clean --if-exists -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+				<%= ">" %>"$BACKUP_LOCAL_DIR/$BACKUP_FILE"
 		else
-			DATABASES='<%= database["name" ] %>'
+			echo "Dumping $_db"
+			$PACKAGE_DIR/bin/pg_dump --clean --if-exists --serializable-deferrable -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "$_db" \
+				<%= ">" %>"$BACKUP_LOCAL_DIR/$BACKUP_FILE"
 		fi
 
-		# If we are dumping multiple databases, we don't, yet, have the ability to restore them as they have unknown names
-		for _db in $DATABASES; do
-			BACKUP_FILE="pgdmp-$_db.sql"
-			BACKUP_LOCAL_DIR='/tmp'
-
-			echo "Dumping $_db"
-			$PACKAGE_DIR/bin/pg_dump --serializable-deferrable -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" "$_db" \
-				<%= ">" %>"$BACKUP_LOCAL_DIR/$BACKUP_FILE"
-
-			# Copy to S3
-			echo "Copying $_db dump to s3://<%= p("postgresql_databases.bucket_name") %>/databases/$BACKUP_FILE"
-			$S3_BOSH_CLI -c "$S3_CONFIG_JSON" put "$BACKUP_LOCAL_DIR/$BACKUP_FILE" "databases/$BACKUP_FILE"
-		done
+		# Copy to S3
+		echo "Copying $BACKUP_FILE dump to s3://<%= p("postgresql_databases.bucket_name") %>/databases/$BACKUP_FILE"
+		$S3_BOSH_CLI -c "$S3_CONFIG_JSON" put "$BACKUP_LOCAL_DIR/$BACKUP_FILE" "databases/$BACKUP_FILE"
 	else
-		# The 'all' database name just means backup all of the databases
-		[ x'<%= database["name"] %>' = x'all' ] <%= "&&" %> continue
 
-		# if(defined(<%= database["username"] %>))
-		<% if database["username"] %>
-			create_db_command='CREATE DATABASE <%= database["name"] %> OWNER <%= database["username"] %>'
+		# if <% database["name" %> == "all"
+		<% if database["name"] != "all" %>
 
-			 if $PACKAGE_DIR/bin/psql -Atc "SELECT true FROM pg_roles WHERE rolname='<%= database["username"] %>'" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" | \
-                grep -qE '^t$'; then
+			# if(defined(<%= database["username"] %>))
+			<% if database["username"] %>
+				create_db_command='CREATE DATABASE <%= database["name"] %> OWNER <%= database["username"] %>'
 
-				echo 'Ensuring user has the correct password: <%= database["username"] %>'
-				$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-					-c "ALTER ROLE <%= database["username"] %> WITH ENCRYPTED PASSWORD '<%= database["password"] %>' LOGIN"
-			else
-				echo 'Creating user: <%= database["username"] %>'
-				$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-					-c "CREATE ROLE <%= database["username"] %> WITH ENCRYPTED PASSWORD '<%= database["password"] %>' LOGIN"
-			fi
+				 if $PACKAGE_DIR/bin/psql -Atc "SELECT true FROM pg_roles WHERE rolname='<%= database["username"] %>'" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" | \
+                			grep -qE '^t$'; then
 
-			# if(<%= p("postgresql_databases.rds") %>)
-			<% if p("postgresql_databases.rds") %>
-				echo 'Assigning role to current user'
-				$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-					-c "GRANT <%= database["username"] %> TO $ADMIN_USERNAME"
+					echo 'Ensuring user has the correct password: <%= database["username"] %>'
+					$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+						-c "ALTER ROLE <%= database["username"] %> WITH ENCRYPTED PASSWORD '<%= database["password"] %>' LOGIN"
+				else
+					echo 'Creating user: <%= database["username"] %>'
+					$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+						-c "CREATE ROLE <%= database["username"] %> WITH ENCRYPTED PASSWORD '<%= database["password"] %>' LOGIN"
+				fi
+
+				# if(<%= p("postgresql_databases.rds") %>)
+				<% if p("postgresql_databases.rds") %>
+					echo 'Assigning role to current user'
+					$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+						-c "GRANT <%= database["username"] %> TO $ADMIN_USERNAME"
+				<% end %>
+				# end
+
+				# if(defined(<%= database["options"] %>))
+				<% if database["options"] %>
+					echo 'Adding user options'
+					# foreach(<%= database["options"] %>)
+					<% database["options"].each do |option| %>
+						echo '. option: <%= option %>'
+						$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+							-c 'ALTER USER <%= database["username"] %> WITH <%= option %>'
+					<% end %>
+					# end
+				<% end %>
+				# end
+			# else
+			<% else %>
+			# else
+				create_db_command='CREATE DATABASE <%= database["name"] %>'
 			<% end %>
 			# end
 
+			echo 'Creating database: <%= database["name"] %>'
+			$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+				-c "$create_db_command"
 
-			# if(defined(<%= database["options"] %>))
-			<% if database["options"] %>
-				echo 'Adding user options'
-				# foreach(<%= database["options"] %>)
-				<% database["options"].each do |option| %>
-					echo '. option: <%= option %>'
-					$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-						-c 'ALTER USER <%= database["username"] %> WITH <%= option %>'
+			# if(defined(<%= database["extensions"] %>))
+			<% if database["extensions"] %>
+				echo 'Creating extensions'
+				# foreach(<%= database["extensions"] %>)
+				<% database["extensions"].each do |extension| %>
+					echo '. extension: <%= extension %>'
+					$PACKAGE_DIR/bin/psql -d "<%= database["name"] %>" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+						-c 'CREATE EXTENSION IF NOT EXISTS <%= extension %>'
 				<% end %>
 				# end
 			<% end %>
 			# end
-		# else
-		<% else %>
-		# else
-			create_db_command='CREATE DATABASE <%= database["name"] %>'
 		<% end %>
-		# end
-
-		echo 'Creating database: <%= database["name"] %>'
-		$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-			-c "$create_db_command"
-
-		# if(defined(<%= database["extensions"] %>))
-		<% if database["extensions"] %>
-			echo 'Creating extensions'
-			# foreach(<%= database["extensions"] %>)
-			<% database["extensions"].each do |extension| %>
-				echo '. extension: <%= extension %>'
-				$PACKAGE_DIR/bin/psql -d "<%= database["name"] %>" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-					-c 'CREATE EXTENSION IF NOT EXISTS <%= extension %>'
-			<% end %>
-			# end
-		<% end %>
-		# end
 
 		# if(defined(<%= p("postgresql_databases.bucket_name") %>))
 		<% if p("postgresql_databases.bucket_name") %>
