@@ -73,7 +73,7 @@ EOF
 		$S3_BOSH_CLI -c "$S3_CONFIG_JSON" put "$BACKUP_LOCAL_DIR/$BACKUP_FILE" "databases/$BACKUP_FILE"
 	else
 
-		# if <% database["name" %> == "all"
+		# if <% database["name"] %> == "all"
 		<% if database["name"] != "all" %>
 
 			# if(defined(<%= database["username"] %>))
