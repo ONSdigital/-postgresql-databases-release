@@ -1,4 +1,4 @@
-blobs/**
 .dev_builds/**
+blobs/**
 dev_releases/**
 config/blobs.yml
