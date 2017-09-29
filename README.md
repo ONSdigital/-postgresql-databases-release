@@ -2,9 +2,9 @@
 
 This release adds the ability to Bosh to create, backup or restore databases within a PostgreSQL instance.
 
-If ```bucket_name``` is provided this is used to find a database dump to restore or backup the database.  The database dumps are called pgdmp-$DATABASE_NAME.sql.
+If `bucket_name` is provided this is used to find a database dump to restore or backup the database.  The database dumps are called pgdmp-$DATABASE_NAME.sql.
 
-```rds``` should be set to true if creating databases within an RDS instance.
+`rds` should be set to true if creating databases within an RDS instance.
 
 This release should work outside of AWS.
 
@@ -39,3 +39,5 @@ This release should work outside of AWS.
      databases:
      - { name: testdb, username: tester, password: PASSWORD, extensions: [pgcrypto,citext] }
 ```
+
+See `jobs/postgresql-databases/spec.yml` for more details
