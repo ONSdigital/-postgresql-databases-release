@@ -96,7 +96,7 @@ EOF
 				<% if p('postgresql_databases.rds') %>
 					echo 'Assigning role to current user'
 					$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-						-c nGRANT <%= database['username'] %> TO $ADMIN_USERNAME"
+						-c "GRANT <%= database['username'] %> TO $ADMIN_USERNAME"
 				<% end %>
 				# end
 
@@ -120,8 +120,7 @@ EOF
 			# end
 
 			echo 'Creating database: <%= database['name'] %>'
-			$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-				-c "$create_db_command"
+			$PACKAGE_DIR/bin/psql -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" -c "$create_db_command"
 
 			# if(defined(<%= database['extensions'] %>))
 			<% if database['extensions'] %>
