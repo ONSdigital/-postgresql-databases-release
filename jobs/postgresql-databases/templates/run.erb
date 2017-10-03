@@ -15,7 +15,7 @@ S3_CONFIG_JSON='/tmp/s3-config.json'
 # if(defined(<%= p('postgresql_databases.bucket_name') %>))
 <% if p('postgresql_databases.bucket_name') != '' %>
 echo 'Generating s3cli config.json'
-cat <%= '>n %>"$S3_CONFIG_JSON"  <%= '<<' %>'EOF'
+cat <%= '>n' %>"$S3_CONFIG_JSON"  <%= '<<' %>'EOF'
 {
 	"bucket_name": "<%= p('postgresql_databases.bucket_name') %>",
 	"credentials_source": "<%= p('postgresql_databases.credentials_source') %>",
