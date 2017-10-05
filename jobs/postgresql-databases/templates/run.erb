@@ -74,6 +74,7 @@ EOF
 			# Copy to S3
 			echo "Copying $BACKUP_FILE dump to s3://<%= p('postgresql_databases.bucket_name') %>/databases/$BACKUP_FILE"
 			$S3_BOSH_CLI -c "$S3_CONFIG_JSON" put "$BACKUP_LOCAL_DIR/$BACKUP_FILE" "databases/$BACKUP_FILE"
+		<% end %>
 		# end if
 	else
 
