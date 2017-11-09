@@ -8,9 +8,9 @@ packages:
 - postgres-utils-9.6.3
 - bosh-s3cli
 
-#provides:
-#- name: postgres
-#  type: database
+provides:
+- name: postgres
+  type: database
 
 properties:
    postgresql_databases.admin_username:
