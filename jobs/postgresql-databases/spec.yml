@@ -5,7 +5,7 @@ templates:
   run.erb: bin/run
 
 packages:
-- postgres-utils-9.6.3
+- postgres-utils-9.6.6
 - bosh-s3cli
 
 provides:
