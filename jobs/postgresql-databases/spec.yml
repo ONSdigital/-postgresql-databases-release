@@ -2,7 +2,7 @@
 name: postgresql-databases
 
 templates:
-  run.erb: bin/run
+  pre-start.erb: bin/pre-start
 
 packages:
 - postgres-utils-9.6.6
