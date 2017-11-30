@@ -35,7 +35,7 @@ cat <%= '>' %>"$S3_CONFIG_JSON"  <%= '<<' %>'EOF'
 	<% if p('postgresql_databases.region') != '' %>
 	"region": "<%= p('postgresql_databases.region') %>",
 	<% end %>
-	<% if ['postgresql_databases.s3_host'] != '' %>
+	<% if p('postgresql_databases.s3_host') != '' %>
 	"host": "<%= p('postgresql_databases.s3_host') %>",
 	<% end %>
 	<% if p('postgresql_databases.s3_port' ) != '' %>
