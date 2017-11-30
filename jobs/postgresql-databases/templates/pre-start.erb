@@ -67,7 +67,7 @@ EOF
 	if [ -f "$S3_CONFIG_JSON" ] <%= '&&' %> $PACKAGE_DIR/bin/psql -Atc "SELECT true FROM pg_database WHERE datname='<%= database['name'] %>'" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" | \
 		grep -qE '^t$' || [ x'<%= database['name'] %>' = x'all' ]; then
 
-		log 'Database already exists <%= database['name'] %>'
+		log 'Database already exists: <%= database['name'] %>'
 
 		# if <%= ! database['no_backup'] %>
 		<% if ! database['no_backup'] %>
