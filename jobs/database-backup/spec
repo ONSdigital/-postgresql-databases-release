@@ -1,0 +1,37 @@
+---
+name: database-backup
+
+templates:
+  run.erb: bin/run
+
+packages:
+- postgres-utils-9.6.6
+- bosh-s3cli
+
+provides:
+- name: postgres
+  type: database
+
+properties:
+   postgresql_databases.admin_username:
+     description: PostgreSQL Admin Username
+     default: postgres
+   postgresql_databases.admin_password:
+     description: PostgreSQL Admin Password
+   postgresql_databases.admin_database:
+     description: PostgreSQL Admin Database
+     default: postgres
+   postgresql_databases.rds:
+     description: RDS PostgreSQL Database (true/false)?
+     default: false
+   postgresql_databases.host:
+     description: PostgreSQL Host
+   postgresql_databases.port:
+     description: PostgreSQL Port
+     default: 5432
+   postgresql_databases.backup_date_format_suffix:
+     description: PostgreSQL Dump Date Format Suffix
+     default: '%FZ%T'
+   postgresql_databases.databases:
+     description: Map of PostgreSQL databases to backup, create and/or restore
+     default: { name: '', username: '', password: '', extensions: [], no_backup: false }

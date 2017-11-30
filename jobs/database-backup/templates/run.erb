@@ -1,0 +1,59 @@
+#!/bin/sh
+set -e
+
+# We log everything to stderr so that we can see the stdout and stderr inline with each other
+# If we don't, we get the stdout whilst the errand is running and then the stderr later on
+
+log(){
+	cat 2<%= '>&' %>1 <%= '<<' %>EOF
+$@
+EOF
+}
+
+PACKAGE_DIR=/var/vcap/packages/postgres-utils-9.6.6
+S3_BOSH_CLI=/var/vcap/packages/bosh-s3cli/bin/s3cli
+S3_CONFIG_JSON=/var/vcap/packages/s3-backups/config/s3-config.json
+
+ADMIN_USERNAME='<%= p('postgresql_databases.admin_username') %>'
+ADMIN_DATABASE='<%= p('postgresql_databases.admin_database') %>'
+POSTGRESQL_HOST='<%= p('postgresql_databases.host') %>'
+POSTGRESQL_PORT='<%= p('postgresql_databases.port') %>'
+
+export PGPASSWORD='<%= p('postgresql_databases.admin_password') %>'
+S3_CONFIG_JSON='/tmp/s3-config.json'
+
+# foreach(<%= p('postgresql_databases.databases') %>)
+<% p('postgresql_databases.databases').each do |database| %>
+	DUMP_FILE='pgdmp-<%= database['name' ] %>.sql'
+	DUMP_LOCAL_FILE="/tmp/$DUMP_FILE"
+	DUMP_S3_FILE="databases/$DUMP_FILE"
+
+	# Check if the database exists, if so we do a database dump
+	if [ -f "$S3_CONFIG_JSON" ] <%= '&&' %> $PACKAGE_DIR/bin/psql -Atc "SELECT true FROM pg_database WHERE datname='<%= database['name'] %>'" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" | \
+		grep -qE '^t$' || [ x'<%= database['name'] %>' = x'all' ]; then
+
+		log 'Database already exists: <%= database['name'] %>'
+
+		# if <%= ! database['no_backup'] %>
+		<% if ! database['no_backup'] %>
+
+			if [ x'<%= database['name'] %>' = x'all' ]; then
+				log 'Dumping all databases'
+				$PACKAGE_DIR/bin/pg_dumpall --clean --if-exists -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+					<%= '>' %>"$DUMP_LOCAL_FILE"
+			else
+				log 'Dumping <%= database['name'] %>'
+				$PACKAGE_DIR/bin/pg_dump --clean --if-exists --serializable-deferrable -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" '<%= database['name' ] %>' \
+					<%= '>' %>"$DUMP_LOCAL_FILE"
+			fi
+
+			# Copy to S3
+			log "Copying $DUMP_FILE dump to s3://<%= p('postgresql_databases.bucket_name') %>/$DUMP_S3_FILE"
+			$S3_BOSH_CLI -c "$S3_CONFIG_JSON" put "$DUMP_LOCAL_FILE" "$DUMP_S3_FILE" 2<%= '>&' %>1
+		<% end %>
+		# end if
+	else
+		log 'Database does not exist: <%= database['name'] %>'
+	fi
+<% end %>
+# end

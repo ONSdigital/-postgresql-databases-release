@@ -1,0 +1,40 @@
+---
+name: s3-backups
+
+templates:
+  s3-config.json.erb: config/s3-config.json
+
+properties:
+   s3_backups.credentials_source:
+     description: S3 Credentials Source (static, env_or_profile or none)
+     default: env_or_profile
+   s3_backups.access_key_id:
+     description: S3 Access Key ID
+     default: ''
+   s3_backups.secret_access_key:
+     description: S3 Secret Access Key
+     default: ''
+   s3_backups.region:
+     description: S3 Region
+     default: ''
+   s3_backups.s3_host:
+     description: S3 Host
+     default: ''
+   s3_backups.s3_port:
+     description: S3 Port
+     default: ''
+   s3_backups.ssl_verify_peer:
+     description: S3 SSL Verify Peer (true/false)
+     default: true
+   s3_backups.use_ssl:
+     description: S3 Use SSL (true/false)
+     default: true
+   s3_backups.signature_version:
+     description: S3 Signature Version
+     default: ''
+   s3_backups.server_side_encryption:
+     description: S3 Server Side Encryption (true/false)
+     default: ''
+   s3_backups.sse_kms_key_id:
+     description: S3 KMS Key ID
+     default: ''

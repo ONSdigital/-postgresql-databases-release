@@ -12,6 +12,7 @@ EOF
 
 PACKAGE_DIR=/var/vcap/packages/postgres-utils-9.6.6
 S3_BOSH_CLI=/var/vcap/packages/bosh-s3cli/bin/s3cli
+S3_CONFIG_JSON=/var/vcap/packages/s3-backups/config/s3-config.json
 
 ADMIN_USERNAME='<%= p('postgresql_databases.admin_username') %>'
 ADMIN_DATABASE='<%= p('postgresql_databases.admin_database') %>'
@@ -19,43 +20,6 @@ POSTGRESQL_HOST='<%= p('postgresql_databases.host') %>'
 POSTGRESQL_PORT='<%= p('postgresql_databases.port') %>'
 
 export PGPASSWORD='<%= p('postgresql_databases.admin_password') %>'
-S3_CONFIG_JSON='/tmp/s3-config.json'
-
-# if(defined(<%= p('postgresql_databases.bucket_name') %>))
-<% if p('postgresql_databases.bucket_name') != '' %>
-log 'Generating s3cli config.json'
-cat <%= '>' %>"$S3_CONFIG_JSON"  <%= '<<' %>'EOF'
-{
-	"bucket_name": "<%= p('postgresql_databases.bucket_name') %>",
-	"credentials_source": "<%= p('postgresql_databases.credentials_source') %>",
-	<% if p('postgresql_databases.credentials_source') == 'static' %>
-	"access_key_id": "<%= p('postgresql_databases.access_key_id') %>",
-	"secret_access_key": "<%= p('postgresql_databases.secret_access_key') %>",
-	<% end %>
-	<% if p('postgresql_databases.region') != '' %>
-	"region": "<%= p('postgresql_databases.region') %>",
-	<% end %>
-	<% if p('postgresql_databases.s3_host') != '' %>
-	"host": "<%= p('postgresql_databases.s3_host') %>",
-	<% end %>
-	<% if p('postgresql_databases.s3_port' ) != '' %>
-	"port": "<%= p('postgresql_databases.s3_port') %>",
-	<% end %>
-	<% if p('postgresql_databases.signature_version') != '' %>
-	"signature_version": "<%= p('postgresql_databases.signature_version') %>",
-	<% end %>
-	<% if p('postgresql_databases.sse_kms_key_id') != '' %>
-	"sse_kms_key_id": "<%= p('postgresql_databases.sse_kms_key_id') %>",
-	<% end %>
-	<% if p('postgresql_databases.server_side_encryption') != '' %>
-	"server_side_encryption": <%= p('postgresql_databases.server_side_encryption') %>,
-	<% end %>
-	"ssl_verify_peer": <%= p('postgresql_databases.ssl_verify_peer') %>,
-	"use_ssl": <%= p('postgresql_databases.use_ssl') %>
-}
-EOF
-
-<% end %>
 
 # foreach(<%= p('postgresql_databases.databases') %>)
 <% p('postgresql_databases.databases').each do |database| %>
@@ -68,25 +32,6 @@ EOF
 		grep -qE '^t$' || [ x'<%= database['name'] %>' = x'all' ]; then
 
 		log 'Database already exists: <%= database['name'] %>'
-
-		# if <%= ! database['no_backup'] %>
-		<% if ! database['no_backup'] %>
-
-			if [ x'<%= database['name'] %>' = x'all' ]; then
-				log 'Dumping all databases'
-				$PACKAGE_DIR/bin/pg_dumpall --clean --if-exists -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
-					<%= '>' %>"$DUMP_LOCAL_FILE"
-			else
-				log 'Dumping <%= database['name'] %>'
-				$PACKAGE_DIR/bin/pg_dump --clean --if-exists --serializable-deferrable -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" '<%= database['name' ] %>' \
-					<%= '>' %>"$DUMP_LOCAL_FILE"
-			fi
-
-			# Copy to S3
-			log "Copying $DUMP_FILE dump to s3://<%= p('postgresql_databases.bucket_name') %>/$DUMP_S3_FILE"
-			$S3_BOSH_CLI -c "$S3_CONFIG_JSON" put "$DUMP_LOCAL_FILE" "$DUMP_S3_FILE" 2<%= '>&' %>1
-		<% end %>
-		# end if
 	else
 
 		# if <%= database['name'] %> != 'all'
@@ -173,5 +118,3 @@ EOF
 	fi
 <% end %>
 # end
-
-[ -n "$S3_CONFIG_JSON" -a -f "$S3_CONFIG_JSON" ] <%= '&&' %> rm -f "$S3_CONFIG_JSON" || :
