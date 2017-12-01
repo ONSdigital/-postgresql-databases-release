@@ -19,6 +19,7 @@ EOF
 
 PACKAGE_DIR=/var/vcap/packages/postgres-utils-9.6.6
 S3_BOSH_CLI=/var/vcap/packages/bosh-s3cli/bin/s3cli
+PSQL="$PACKAGE_DIR/bin/psql"
 
 # This is not the correct location
 S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
@@ -28,9 +29,9 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 
 	ADMIN_USERNAME='<%= rdms['admin_username'] %>'
 	ADMIN_DATABASE='<%= rdms['admin_database'] %>'
-	POSTGRESQL_HOST='<%= rdms['host'] %>'
-	POSTGRESQL_PORT='<%= rdms['port'] %>'
+	PG_HOST='<%= rdms['host'] %>'
 
+	export PGPORT='<%= rdms['port'] %>'
 	export PGPASSWORD='<%= rdms['admin_password'] %>'
 
 	# foreach(<%= rdms['databases'] %>)
@@ -41,7 +42,7 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 		DUMP_S3_FILE="databases/$DUMP_FILE"
 
 		# Check if the database exists, if so we do a database dump
-		if [ -f "$S3_CONFIG_JSON" ] <%= '&&' %> "$PACKAGE_DIR/bin/psql" -Atc "SELECT true FROM pg_database WHERE datname='<%= database['name'] %>'" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" | \
+		if [ -f "$S3_CONFIG_JSON" ] <%= '&&' %> "$PSQL" -Atc "SELECT true FROM pg_database WHERE datname='<%= database['name'] %>'" -U"$ADMIN_USERNAME" -h"$PG_HOST" | \
 			grep -qE '^t$' || [ x'<%= database['name'] %>' = x'all' ]; then
 
 			log 'Database already exists: <%= database['name'] %>'
@@ -54,15 +55,15 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 				<% if database['username'] %>
 					create_db_command='CREATE DATABASE <%= database['name'] %> OWNER <%= database['username'] %>'
 
-					if "$PACKAGE_DIR/bin/psql" -Atc "SELECT true FROM pg_roles WHERE rolname='<%= database['username'] %>'" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" | \
+					if "$PSQL" -Atc "SELECT true FROM pg_roles WHERE rolname='<%= database['username'] %>'" -U"$ADMIN_USERNAME" -h"$PG_HOST" | \
         	        			grep -qE '^t$'; then
 
 						log 'Ensuring user has the correct password: <%= database['username'] %>'
-						"$PACKAGE_DIR/bin/psql" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+						"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" \
 							-c "ALTER ROLE <%= database['username'] %> WITH ENCRYPTED PASSWORD '<%= database['password'] %>' LOGIN" 2<%= '>&' %>1 
 					else
 						log 'Creating user: <%= database['username'] %>'
-						"$PACKAGE_DIR/bin/psql" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+						"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" \
 							-c "CREATE ROLE <%= database['username'] %> WITH ENCRYPTED PASSWORD '<%= database['password'] %>' LOGIN" 2<%= '>&' %>1 
 					fi
 
@@ -71,7 +72,7 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 						# With an PostgreSQL RDS database you don't have the usual 'postgres' admin/superuser permissions, so we
 						# need to jump through an additional hoop so we can grant user permissions
 						log 'Assigning role to current user'
-						"$PACKAGE_DIR/bin/psql" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+						"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" \
 							-c "GRANT <%= database['username'] %> TO $ADMIN_USERNAME" 2<%= '>&' %>1 
 					<% end %>
 					# end
@@ -82,7 +83,7 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 						# foreach(<%= database['options'] %>)
 						<% database['options'].each do |option| %>
 							log '. option: <%= option %>'
-							"$PACKAGE_DIR/bin/psql" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+							"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" \
 								-c 'ALTER USER <%= database['username'] %> WITH <%= option %>' 2<%= '>&' %>1 
 						<% end %>
 						# end
@@ -96,7 +97,7 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 				# end
 
 				log 'Creating database: <%= database['name'] %>'
-				"$PACKAGE_DIR/bin/psql" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" -c "$create_db_command" 2<%= '>&' %>1 
+				"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" -c "$create_db_command" 2<%= '>&' %>1 
 
 				# if(defined(<%= database['extensions'] %>))
 				<% if database['extensions'] %>
@@ -104,7 +105,7 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 					# foreach(<%= database['extensions'] %>)
 					<% database['extensions'].each do |extension| %>
 						log '. extension: <%= extension %>'
-						"$PACKAGE_DIR/bin/psql" -d '<%= database['name'] %>' -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+						"$PSQL" -d '<%= database['name'] %>' -U"$ADMIN_USERNAME" -h"$PG_HOST" \
 							-c 'CREATE EXTENSION IF NOT EXISTS <%= extension %>' 2<%= '>&' %>1 
 					<% end %>
 					# end
@@ -122,7 +123,7 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 						"$S3_BOSH_CLI" -c "$S3_CONFIG_JSON" get "$DUMP_S3_FILE" "$DUMP_LOCAL_FILE" 2<%= '>&' %>1 
 
 						log 'Restoring database dump to <%= database['name'] %>'
-						"$PACKAGE_DIR/bin/psql" -d '<%= database['name'] %>' -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
+						"$PSQL" -d '<%= database['name'] %>' -U"$ADMIN_USERNAME" -h"$PG_HOST" \
 							<%= '<' %>"$DUMP_LOCAL_FILE" 2<%= '>&' %>1 
 					else
 						log "Remote backup does not exist: s3://<%= link('s3_config').p('.bucket_name') %>/$DUMP_S3_FILE"
