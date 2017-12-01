@@ -1,0 +1,40 @@
+---
+name: s3-config
+
+templates:
+  s3-config.json.erb: config/s3-config.json
+
+properties:
+   s3_config.credentials_source:
+     description: S3 Credentials Source (static, env_or_profile or none)
+     default: env_or_profile
+   s3_config.access_key_id:
+     description: S3 Access Key ID
+     default: ''
+   s3_config.secret_access_key:
+     description: S3 Secret Access Key
+     default: ''
+   s3_config.region:
+     description: S3 Region
+     default: ''
+   s3_config.s3_host:
+     description: S3 Host
+     default: ''
+   s3_config.s3_port:
+     description: S3 Port
+     default: ''
+   s3_config.ssl_verify_peer:
+     description: S3 SSL Verify Peer (true/false)
+     default: true
+   s3_config.use_ssl:
+     description: S3 Use SSL (true/false)
+     default: true
+   s3_config.signature_version:
+     description: S3 Signature Version
+     default: ''
+   s3_config.server_side_encryption:
+     description: S3 Server Side Encryption (true/false)
+     default: ''
+   s3_config.sse_kms_key_id:
+     description: S3 KMS Key ID
+     default: ''
