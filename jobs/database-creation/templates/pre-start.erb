@@ -1,6 +1,13 @@
 #!/bin/sh
 set -e
 
+
+# Debug - see what vars we have
+(
+	env
+	set
+) | sort -u
+
 # We log everything to stderr so that we can see the stdout and stderr inline with each other
 # If we don't, we get the stdout whilst the errand is running and then the stderr later on
 
@@ -13,7 +20,7 @@ EOF
 PACKAGE_DIR=/var/vcap/packages/postgres-utils-9.6.6
 S3_BOSH_CLI=/var/vcap/packages/bosh-s3cli/bin/s3cli
 
-# Is this the correct way to consume a common config?
+# This is not the correct location
 S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 
 ADMIN_USERNAME='<%= p('postgresql_databases.admin_username') %>'
