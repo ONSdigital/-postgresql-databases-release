@@ -70,4 +70,4 @@ properties:
      default: ''
    postgresql_databases.databases:
      description: Map of PostgreSQL databases to backup, create and/or restore
-     default: { name: '', username: '', password: '', extensions: [], restore_blob: '' }
+     default: { name: '', username: '', password: '', extensions: [], no_restore: false }
