@@ -12,7 +12,9 @@ EOF
 
 PACKAGE_DIR=/var/vcap/packages/postgres-utils-9.6.6
 S3_BOSH_CLI=/var/vcap/packages/bosh-s3cli/bin/s3cli
-S3_CONFIG_JSON=/var/vcap/packages/s3-backups/config/s3-config.json
+
+# Is this the correct way to consume a common config?
+S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 
 ADMIN_USERNAME='<%= p('postgresql_databases.admin_username') %>'
 ADMIN_DATABASE='<%= p('postgresql_databases.admin_database') %>'
@@ -20,7 +22,6 @@ POSTGRESQL_HOST='<%= p('postgresql_databases.host') %>'
 POSTGRESQL_PORT='<%= p('postgresql_databases.port') %>'
 
 export PGPASSWORD='<%= p('postgresql_databases.admin_password') %>'
-S3_CONFIG_JSON='/tmp/s3-config.json'
 
 # foreach(<%= p('postgresql_databases.databases') %>)
 <% p('postgresql_databases.databases').each do |database| %>
@@ -48,7 +49,7 @@ S3_CONFIG_JSON='/tmp/s3-config.json'
 			fi
 
 			# Copy to S3
-			log "Copying $DUMP_FILE dump to s3://<%= p('postgresql_databases.bucket_name') %>/$DUMP_S3_FILE"
+			log "Copying $DUMP_FILE dump to s3://<%= link('s3_config').p('bucket_name') %>/$DUMP_S3_FILE"
 			$S3_BOSH_CLI -c "$S3_CONFIG_JSON" put "$DUMP_LOCAL_FILE" "$DUMP_S3_FILE" 2<%= '>&' %>1
 		<% end %>
 		# end if

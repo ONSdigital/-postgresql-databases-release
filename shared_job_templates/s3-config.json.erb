@@ -1,0 +1,31 @@
+# if(defined(<%= p('s3_config.bucket_name') %>))
+<% if p('s3_config.bucket_name') != '' %>
+{
+	"bucket_name": "<%= p('s3_config.bucket_name') %>",
+	"credentials_source": "<%= p('s3_config.credentials_source') %>",
+	<% if p('s3_config.credentials_source') == 'static' %>
+	"access_key_id": "<%= p('s3_config.access_key_id') %>",
+	"secret_access_key": "<%= p('s3_config.secret_access_key') %>",
+	<% end %>
+	<% if p('s3_config.region') != '' %>
+	"region": "<%= p('s3_config.region') %>",
+	<% end %>
+	<% if p('s3_config.s3_host') != '' %>
+	"host": "<%= p('s3_config.s3_host') %>",
+	<% end %>
+	<% if p('s3_config.s3_port' ) != '' %>
+	"port": "<%= p('s3_config.s3_port') %>",
+	<% end %>
+	<% if p('s3_config.signature_version') != '' %>
+	"signature_version": "<%= p('s3_config.signature_version') %>",
+	<% end %>
+	<% if p('s3_config.sse_kms_key_id') != '' %>
+	"sse_kms_key_id": "<%= p('s3_config.sse_kms_key_id') %>",
+	<% end %>
+	<% if p('s3_config.server_side_encryption') != '' %>
+	"server_side_encryption": <%= p('s3_config.server_side_encryption') %>,
+	<% end %>
+	"ssl_verify_peer": <%= p('s3_config.ssl_verify_peer') %>,
+	"use_ssl": <%= p('s3_config.use_ssl') %>
+}
+<% end %>

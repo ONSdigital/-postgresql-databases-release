@@ -3,6 +3,7 @@ name: postgresql-databases
 
 templates:
   pre-start.erb: bin/pre-start
+  s3-config.json.erb: config/s3-config.json
 
 packages:
 - postgres-utils-9.6.6
@@ -13,6 +14,43 @@ provides:
   type: database
 
 properties:
+   s3_config.credentials_source:
+     description: S3 Credentials Source (static, env_or_profile or none)
+     default: env_or_profile
+   s3_config.access_key_id:
+     description: S3 Access Key ID
+     default: ''
+   s3_config.secret_access_key:
+     description: S3 Secret Access Key
+     default: ''
+   s3_config.region:
+     description: S3 Region
+     default: ''
+   s3_config.s3_host:
+     description: S3 Host
+     default: ''
+   s3_config.s3_port:
+     description: S3 Port
+     default: ''
+   s3_config.ssl_verify_peer:
+     description: S3 SSL Verify Peer (true/false)
+     default: true
+   s3_config.use_ssl:
+     description: S3 Use SSL (true/false)
+     default: true
+   s3_config.signature_version:
+     description: S3 Signature Version
+     default: ''
+   s3_config.server_side_encryption:
+     description: S3 Server Side Encryption (true/false)
+     default: ''
+   s3_config.sse_kms_key_id:
+     description: S3 KMS Key ID
+     default: ''
+   s3_config.bucket_name:
+     description: Backup Bucket Name
+     default: ''
+
    postgresql_databases.admin_username:
      description: PostgreSQL Admin Username
      default: postgres
@@ -29,45 +67,6 @@ properties:
    postgresql_databases.port:
      description: PostgreSQL Port
      default: 5432
-   postgresql_databases.backup_date_format_suffix:
-     description: PostgreSQL Dump Date Format Suffix
-     default: '%FZ%T'
-   postgresql_databases.bucket_name:
-     description: PostgreSQL Backup Bucket Name
-     default: ''
-   postgresql_databases.credentials_source:
-     description: S3 Credentials Source (static, env_or_profile or none)
-     default: env_or_profile
-   postgresql_databases.access_key_id:
-     description: S3 Access Key ID
-     default: ''
-   postgresql_databases.secret_access_key:
-     description: S3 Secret Access Key
-     default: ''
-   postgresql_databases.region:
-     description: S3 Region
-     default: ''
-   postgresql_databases.s3_host:
-     description: S3 Host
-     default: ''
-   postgresql_databases.s3_port:
-     description: S3 Port
-     default: ''
-   postgresql_databases.ssl_verify_peer:
-     description: S3 SSL Verify Peer (true/false)
-     default: true
-   postgresql_databases.use_ssl:
-     description: S3 Use SSL (true/false)
-     default: true
-   postgresql_databases.signature_version:
-     description: S3 Signature Version
-     default: ''
-   postgresql_databases.server_side_encryption:
-     description: S3 Server Side Encryption (true/false)
-     default: ''
-   postgresql_databases.sse_kms_key_id:
-     description: S3 KMS Key ID
-     default: ''
    postgresql_databases.databases:
      description: Map of PostgreSQL databases to backup, create and/or restore
-     default: { name: '', username: '', password: '', extensions: [], no_restore: false }
+     default: { name: '', username: '', password: '', extensions: [], no_restore: false, no_backup: false }

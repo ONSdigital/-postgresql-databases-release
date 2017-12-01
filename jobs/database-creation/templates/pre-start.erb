@@ -12,7 +12,9 @@ EOF
 
 PACKAGE_DIR=/var/vcap/packages/postgres-utils-9.6.6
 S3_BOSH_CLI=/var/vcap/packages/bosh-s3cli/bin/s3cli
-S3_CONFIG_JSON=/var/vcap/packages/s3-backups/config/s3-config.json
+
+# Is this the correct way to consume a common config?
+S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 
 ADMIN_USERNAME='<%= p('postgresql_databases.admin_username') %>'
 ADMIN_DATABASE='<%= p('postgresql_databases.admin_database') %>'
@@ -97,8 +99,8 @@ export PGPASSWORD='<%= p('postgresql_databases.admin_password') %>'
 			# end
 		<% end %>
 
-		# if(defined(<%= p('postgresql_databases.bucket_name') %> <% '&&' %> ! <%= database['no_restore'] %>))
-		<% if p('postgresql_databases.bucket_name') && ! database['no_restore'] %>
+		# if(defined(<%= link('s3_config').p('bucket_name') %> <% '&&' %> ! <%= database['no_restore'] %>))
+		<% if link('s3_config').p('bucket_name') && ! database['no_restore'] %>
 			if [ -n "$create_db_command" ]; then
 
 				# Copy from S3
@@ -110,7 +112,7 @@ export PGPASSWORD='<%= p('postgresql_databases.admin_password') %>'
 					$PACKAGE_DIR/bin/psql -d '<%= database['name'] %>' -U"$ADMIN_USERNAME" -h"$POSTGRESQL_HOST" \
 						<%= '<' %>"$DUMP_LOCAL_FILE" 2<%= '>&' %>1 
 				else
-					log "Remote backup does not exist: s3://<%= p('postgresql_databases.bucket_name') %>/$DUMP_S3_FILE"
+					log "Remote backup does not exist: s3://<%= link('s3_config').p('.bucket_name') %>/$DUMP_S3_FILE"
 				fi
 			fi
 		<% end %>
