@@ -51,22 +51,13 @@ properties:
      description: Backup Bucket Name
      default: ''
 
-   postgresql_databases.admin_username:
-     description: PostgreSQL Admin Username
-     default: postgres
-   postgresql_databases.admin_password:
-     description: PostgreSQL Admin Password
-   postgresql_databases.admin_database:
-     description: PostgreSQL Admin Database
-     default: postgres
-   postgresql_databases.rds:
-     description: RDS PostgreSQL Database (true/false)?
-     default: false
-   postgresql_databases.host:
-     description: PostgreSQL Host
-   postgresql_databases.port:
-     description: PostgreSQL Port
-     default: 5432
-   postgresql_databases.databases:
-     description: Map of PostgreSQL databases to backup, create and/or restore
-     default: { name: '', username: '', password: '', extensions: [], no_restore: false, no_backup: false }
+   postgresql_databases:
+     description: Hash of PostgreSQL database RDMS
+       default:
+       - name: ''
+         admin_username: ''
+         admin_password: ''
+         admin_database: ''
+         host: ''
+         port: 5432
+         databases: { name: '', username: '', password: '', extensions: [], no_backup: false, no_restore: false}
