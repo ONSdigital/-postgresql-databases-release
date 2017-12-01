@@ -42,12 +42,24 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 		DUMP_S3_FILE="databases/$DUMP_FILE"
 
 		# Check if the database exists, if so we do a database dump
-		if [ -f "$S3_CONFIG_JSON" ] <%= '&&' %> "$PSQL" -Atc "SELECT true FROM pg_database WHERE datname='<%= database['name'] %>'" -U"$ADMIN_USERNAME" -h"$PG_HOST" | \
-			grep -qE '^t$' || [ x'<%= database['name'] %>' = x'all' ]; then
+		if [ -f "$S3_CONFIG_JSON" ] <%= '&&' %> "$PSQL" -Atc "SELECT true FROM pg_database WHERE datname='<%= database['name'] %>'" -U"$ADMIN_USERNAME" -h"$PG_HOST" 
+			"$ADMIN_DATABASE" | grep -qE '^t$' || [ x'<%= database['name'] %>' = x'all' ]; then
 
 			log 'Database already exists: <%= database['name'] %>'
-		else
 
+			# if <%= database['drop_existing'] %>
+			<% if database['drop_existing'] %>
+				log 'Dropping database: <%= database['name'] %>'
+				"$PSQL" -Atc "DROP DATABASE <%= database['name'] %>" -U"$ADMIN_USERNAME" -h"$PG_HOST" "$ADMIN_DATABASE"
+			# else
+			<% else %>
+			# else
+				DATABASE_EXISTS=1
+			<% end %>
+			# end
+		fi
+
+		if [ -z "$DATABASE_EXISTS" ]; then
 			# if <%= database['name'] %> != 'all'
 			<% if database['name'] != 'all' %>
 
@@ -132,6 +144,8 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 			<% end %>
 			# end
 		fi
+
+		unset DATABASE_EXISTS
 	<% end %>
 	# end
 <% end %>
