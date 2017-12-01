@@ -1,5 +1,5 @@
 ---
-name: postgresql-databases
+name: database-creation
 
 templates:
   pre-start.erb: bin/pre-start
