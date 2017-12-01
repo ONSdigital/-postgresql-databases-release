@@ -53,8 +53,8 @@ properties:
 
    postgresql_databases:
      description: Hash of PostgreSQL database RDMS
-       default:
-       - name: ''
-         host: ''
-         port: 5432
-         databases: { name: '', username: '', password: '', extensions: [], no_backup: false}
+     default:
+     - name: ''
+       host: ''
+       port: 5432
+       databases: { name: '', username: '', password: '', extensions: [], no_backup: false}
