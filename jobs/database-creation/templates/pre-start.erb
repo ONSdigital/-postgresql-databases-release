@@ -1,12 +1,7 @@
 #!/bin/sh
-set -e
+#
 
-
-# Debug - see what vars we have
-(
-	env
-	set
-) | sort -u
+set -ex
 
 # We log everything to stderr so that we can see the stdout and stderr inline with each other
 # If we don't, we get the stdout whilst the errand is running and then the stderr later on
@@ -24,9 +19,7 @@ PSQL="$PACKAGE_DIR/bin/psql"
 # This is not the correct location
 S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 
-# foreach(<%= p('postgresql_databases') %>
 <% p('postgresql_databases').each do |rdms| %>
-
 	ADMIN_USERNAME='<%= rdms['admin_username'] %>'
 	ADMIN_DATABASE='<%= rdms['admin_database'] %>'
 	PG_HOST='<%= rdms['host'] %>'
@@ -34,36 +27,31 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 	export PGPORT='<%= rdms['port'] %>'
 	export PGPASSWORD='<%= rdms['admin_password'] %>'
 
-	# foreach(<%= rdms['databases'] %>)
 	<% rdms['databases'].each do |database| %>
-
-		DUMP_FILE='pgdmp-<%= database['name' ] %>.sql'
+		DUMP_FILE='pgdmp-<%= database['name'] %>.sql'
 		DUMP_LOCAL_FILE="/tmp/$DUMP_FILE"
 		DUMP_S3_FILE="databases/$DUMP_FILE"
 
 		# Check if the database exists, if so we do a database dump
-		if [ -f "$S3_CONFIG_JSON" ] <%= '&&' %> "$PSQL" -Atc "SELECT true FROM pg_database WHERE datname='<%= database['name'] %>'" -U"$ADMIN_USERNAME" -h"$PG_HOST" 
-			"$ADMIN_DATABASE" | grep -qE '^t$' || [ x'<%= database['name'] %>' = x'all' ]; then
+		if "$PSQL" -Atc "SELECT true FROM pg_database WHERE datname='<%= database['name'] %>'" -U"$ADMIN_USERNAME" -h"$PG_HOST" "$ADMIN_DATABASE" | grep -qE '^t$'; then
 
 			log 'Database already exists: <%= database['name'] %>'
 
-			# if <%= database['drop_existing'] %>
 			<% if database['drop_existing'] %>
 				log 'Dropping database: <%= database['name'] %>'
 				"$PSQL" -Atc "DROP DATABASE <%= database['name'] %>" -U"$ADMIN_USERNAME" -h"$PG_HOST" "$ADMIN_DATABASE"
-			# else
-			<% else %>
-			# else
+
+			<% elsif database['ignore_existing'] %>
 				DATABASE_EXISTS=1
+			<% else %>
+				log 'Database already exists: <%= database['name'] %>'
+
+				exit 1
 			<% end %>
-			# end
 		fi
 
 		if [ -z "$DATABASE_EXISTS" ]; then
-			# if <%= database['name'] %> != 'all'
 			<% if database['name'] != 'all' %>
-
-				# if(defined(<%= database['username'] %>))
 				<% if database['username'] %>
 					create_db_command='CREATE DATABASE <%= database['name'] %> OWNER <%= database['username'] %>'
 
@@ -79,54 +67,37 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 							-c "CREATE ROLE <%= database['username'] %> WITH ENCRYPTED PASSWORD '<%= database['password'] %>' LOGIN" 2<%= '>&' %>1 
 					fi
 
-					# if(<%= database['rds'] %>)
-					<% if database['rds'] %>
+					<% if rdms['rds'] %>
 						# With an PostgreSQL RDS database you don't have the usual 'postgres' admin/superuser permissions, so we
 						# need to jump through an additional hoop so we can grant user permissions
 						log 'Assigning role to current user'
-						"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" \
-							-c "GRANT <%= database['username'] %> TO $ADMIN_USERNAME" 2<%= '>&' %>1 
+						"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" -c "GRANT <%= database['username'] %> TO $ADMIN_USERNAME" 2<%= '>&' %>1 
 					<% end %>
-					# end
 
-					# if(defined(<%= database['options'] %>))
 					<% if database['options'] %>
 						log 'Adding user options'
-						# foreach(<%= database['options'] %>)
 						<% database['options'].each do |option| %>
 							log '. option: <%= option %>'
-							"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" \
-								-c 'ALTER USER <%= database['username'] %> WITH <%= option %>' 2<%= '>&' %>1 
+							"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" -c 'ALTER USER <%= database['username'] %> WITH <%= option %>' 2<%= '>&' %>1 
 						<% end %>
-						# end
 					<% end %>
-					# end
-				# else
 				<% else %>
-				# else
 					create_db_command='CREATE DATABASE <%= database['name'] %>'
 				<% end %>
-				# end
 
 				log 'Creating database: <%= database['name'] %>'
 				"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" -c "$create_db_command" 2<%= '>&' %>1 
 
-				# if(defined(<%= database['extensions'] %>))
 				<% if database['extensions'] %>
 					log 'Creating extensions'
-					# foreach(<%= database['extensions'] %>)
 					<% database['extensions'].each do |extension| %>
 						log '. extension: <%= extension %>'
-						"$PSQL" -d '<%= database['name'] %>' -U"$ADMIN_USERNAME" -h"$PG_HOST" \
-							-c 'CREATE EXTENSION IF NOT EXISTS <%= extension %>' 2<%= '>&' %>1 
+						"$PSQL" -d '<%= database['name'] %>' -U"$ADMIN_USERNAME" -h"$PG_HOST" -c 'CREATE EXTENSION IF NOT EXISTS <%= extension %>' 2<%= '>&' %>1 
 					<% end %>
-					# end
 				<% end %>
-				# end
 			<% end %>
 
-			# if(defined(<%= link('s3_config').p('bucket_name') %> <% '&&' %> ! <%= database['no_restore'] %>))
-			<% if link('s3_config').p('bucket_name') && ! database['no_restore'] %>
+			<% if p('s3_config.bucket_name') && ! database['no_restore'] %>
 				if [ -n "$create_db_command" ]; then
 
 					# Copy from S3
@@ -138,15 +109,12 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 						"$PSQL" -d '<%= database['name'] %>' -U"$ADMIN_USERNAME" -h"$PG_HOST" \
 							<%= '<' %>"$DUMP_LOCAL_FILE" 2<%= '>&' %>1 
 					else
-						log "Remote backup does not exist: s3://<%= link('s3_config').p('.bucket_name') %>/$DUMP_S3_FILE"
+						log "Remote backup does not exist: s3://<%= p('s3_config.bucket_name') %>/$DUMP_S3_FILE"
 					fi
 				fi
 			<% end %>
-			# end
 		fi
 
 		unset DATABASE_EXISTS
 	<% end %>
-	# end
 <% end %>
-# end
