@@ -1,6 +1,5 @@
-# if(defined(<%= p('s3_config.bucket_name') %>))
-<% if p('s3_config.bucket_name') != '' %>
 {
+<% if p('s3_config.bucket_name') != '' %>
 	"bucket_name": "<%= p('s3_config.bucket_name') %>",
 	"credentials_source": "<%= p('s3_config.credentials_source') %>",
 	<% if p('s3_config.credentials_source') == 'static' %>
@@ -27,5 +26,5 @@
 	<% end %>
 	"ssl_verify_peer": <%= p('s3_config.ssl_verify_peer') %>,
 	"use_ssl": <%= p('s3_config.use_ssl') %>
-}
 <% end %>
+}
