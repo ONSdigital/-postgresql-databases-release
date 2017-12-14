@@ -4,3 +4,4 @@ blobs/**
 downloads/**
 dev_releases/**
 config/blobs.yml
+*.tgz
