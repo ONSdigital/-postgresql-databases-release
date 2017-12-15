@@ -21,10 +21,10 @@ PSQL="$PACKAGE_DIR/bin/psql"
 S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 
 <% p('postgresql_databases').each do |rdms| %>
-	PG_HOST='<%= rdms['host'] %>'
+	PG_HOST='<%= rdms['postgresql_host'] %>'
 
 	# psql suck this in
-	export PGPORT='<%= rdms['port'] %>'
+	export PGPORT='<%= rdms['postgresql_port'] %>'
 
 	<% rdms['databases'].each do |database| %>
 		DUMP_FILE='pgdmp-<%= database['name' ] %>.sql'

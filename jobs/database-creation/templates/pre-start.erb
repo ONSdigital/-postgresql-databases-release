@@ -22,9 +22,9 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 <% p('postgresql_databases').each do |rdms| %>
 	ADMIN_USERNAME='<%= rdms['admin_username'] %>'
 	ADMIN_DATABASE='<%= rdms['admin_database'] %>'
-	PG_HOST='<%= rdms['host'] %>'
+	PG_HOST='<%= rdms['postgresql_host'] %>'
 
-	export PGPORT='<%= rdms['port'] %>'
+	export PGPORT='<%= rdms['postgresql_port'] %>'
 	export PGPASSWORD='<%= rdms['admin_password'] %>'
 
 	<% rdms['databases'].each do |database| %>

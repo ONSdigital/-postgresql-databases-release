@@ -58,6 +58,6 @@ properties:
        admin_username: ''
        admin_password: ''
        admin_database: ''
-       host: ''
-       port: 5432
-       databases: { name: '', username: '', password: '', extensions: [], no_restore: false, drop_existing: false}
+       postgresql_host: ''
+       postgresql_port: 5432
+       databases: { name: '', username: '', password: '', extensions: [], no_restore: false, drop_existing: false, ignore_existing: true}
