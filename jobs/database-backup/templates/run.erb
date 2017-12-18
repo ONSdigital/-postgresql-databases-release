@@ -33,18 +33,12 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 
 		<% if ! database['no_backup'] %>
 			# Check if the database exists, if so we do a database dump
-			if [ -f "$S3_CONFIG_JSON" ] <%= '&&' %> "$PSQL" -Atc "SELECT true -U'<%= rdms['admin_password'] %>'" -h"$PG_HOST" <%= database['name'] %>' | \
+			if [ -f "$S3_CONFIG_JSON" ] <%= '&&' %> "$PSQL" -Atc "SELECT true -U'<%= database['username'] %>'" -h"$PG_HOST" <%= database['name'] %>' | \
 				grep -qE '^t$' || [ x'<%= database['name'] %>' = x'all' ]; then
 
-				if [ x'<%= database['name'] %>' = x'all' ]; then
-					log 'Dumping all databases'
-					PGPASSWORD='<%= rdms['admin_password'] %>' "$PG_DUMPALL" --clean --if-exists -U"<%= rdms['admin_username'] %>" \
-						-h"$PG_HOST" <%= '>' %>"$DUMP_LOCAL_FILE"
-				else
-					log 'Dumping <%= database['name'] %>'
-					PGPASSWORD='<%= database['password'] %>' "$PG_DUMP" --clean --if-exists --serializable-deferrable -U'<%= database['username'] %>' \
-						-h"$PG_HOST" '<%= database['name' ] %>' <%= '>' %>"$DUMP_LOCAL_FILE"
-				fi
+				log 'Dumping <%= database['name'] %>'
+				PGPASSWORD='<%= database['password'] %>' "$PG_DUMP" --clean --if-exists --serializable-deferrable -U'<%= database['username'] %>' \
+					-h"$PG_HOST" '<%= database['name' ] %>' <%= '>' %>"$DUMP_LOCAL_FILE"
 
 				# Copy to S3
 				log "Copying $DUMP_FILE dump to s3://<%= p('s3_config.bucket_name') %>/$DUMP_S3_FILE"
