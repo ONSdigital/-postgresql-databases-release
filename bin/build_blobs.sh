@@ -9,12 +9,10 @@ export GOPATH="$PWD/build/go"
 
 mkdir -p "$GOPATH" blobs
 
-cd build/go/src/github/cloudfoundry/bosh-s3cli
-
-go get
+cd build/go/src/github.com/cloudfoundry/bosh-s3cli
 
 go build
 
 cd -
 
-cp build/go/src/github/cloudfoundry/bosh-s3cli/bosh-s3cli blobs/
+cp build/go/src/github.com/cloudfoundry/bosh-s3cli/bosh-s3cli blobs/
