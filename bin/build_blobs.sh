@@ -11,8 +11,10 @@ mkdir -p "$GOPATH" blobs
 
 cd build/go/src/github/cloudfoundry/bosh-s3cli
 
+go get
+
 go build
 
 cd -
 
-cp go/src/github.com/cloudfoundry/bosh-s3cli/bosh-s3cli blobs/
+cp build/go/src/github/cloudfoundry/bosh-s3cli/bosh-s3cli blobs/
