@@ -2,7 +2,7 @@
 
 set -e
 
-POSTGRESQL_VERSION='9.6.6'
+POSTGRESQL_VERSION='9.6.7'
 
 [ -d blobs ] || mkdir -p blobs
 

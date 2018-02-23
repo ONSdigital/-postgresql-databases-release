@@ -1,6 +1,6 @@
 ---
 # When the PostgreSQL version is updated here we need to update any other references within this release
 # grep'ing for the version will show all of the places that need updating
-name: postgres-utils-9.6.6
+name: postgres-utils-9.6.7
 files:
-  - blobs/postgresql-9.6.6.tar.gz
+  - blobs/postgresql-9.6.7.tar.gz

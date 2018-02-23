@@ -6,7 +6,7 @@ templates:
   s3-config.json.erb: config/s3-config.json
 
 packages:
-- postgres-utils-9.6.6
+- postgres-utils-9.6.7
 - bosh-s3cli
 
 provides:
