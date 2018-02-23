@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+
+set -ex
+
+go get github.com/cloudfoundry/bosh-s3cli
+
+cp go/src/github.com/cloudfoundry/bosh-s3cli/bosh-s3cli "$BOSH_INSTALL_TARGET/bin/s3cli"
+chmod +x "$BOSH_INSTALL_TARGET/bin/s3cli"
+
