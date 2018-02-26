@@ -27,12 +27,20 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 	export PGPORT='<%= rdms['postgresql_port'] %>'
 	export PGPASSWORD='<%= rdms['admin_password'] %>'
 
+	# Install default extensions
+	# If we install the extenions to template1, then all new databases will have them
+	<% rdms['global_extensions'].each do |extension| %>
+		log "Installing <%= extension %>
+		"$PSQL" -d 'template1' -U"$ADMIN_USERNAME" -h"$PG_HOST" -c 'CREATE EXTENSION IF NOT EXISTS <%= extension %>' 2<%= '>&' %>1
+	<% end %>
+
+
 	<% rdms['databases'].each do |database| %>
 		DUMP_FILE='pgdmp-<%= database['name'] %>.sql'
 		DUMP_LOCAL_FILE="/tmp/$DUMP_FILE"
 		DUMP_S3_FILE="databases/$DUMP_FILE"
 
-		# Check if the database exists, if so we do a database dump
+		# Check if the database exists
 		if "$PSQL" -Atc "SELECT true FROM pg_database WHERE datname='<%= database['name'] %>'" -U"$ADMIN_USERNAME" -h"$PG_HOST" "$ADMIN_DATABASE" | grep -qE '^t$'; then
 
 			log 'Database already exists: <%= database['name'] %>'
@@ -60,25 +68,25 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 
 						log 'Ensuring user has the correct password: <%= database['username'] %>'
 						"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" \
-							-c "ALTER ROLE <%= database['username'] %> WITH ENCRYPTED PASSWORD '<%= database['password'] %>' LOGIN" 2<%= '>&' %>1 
+							-c "ALTER ROLE <%= database['username'] %> WITH ENCRYPTED PASSWORD '<%= database['password'] %>' LOGIN" 2<%= '>&' %>1
 					else
 						log 'Creating user: <%= database['username'] %>'
 						"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" \
-							-c "CREATE ROLE <%= database['username'] %> WITH ENCRYPTED PASSWORD '<%= database['password'] %>' LOGIN" 2<%= '>&' %>1 
+							-c "CREATE ROLE <%= database['username'] %> WITH ENCRYPTED PASSWORD '<%= database['password'] %>' LOGIN" 2<%= '>&' %>1
 					fi
 
 					<% if rdms['rds'] %>
 						# With an PostgreSQL RDS database you don't have the usual 'postgres' admin/superuser permissions, so we
 						# need to jump through an additional hoop so we can grant user permissions
 						log 'Assigning role to current user'
-						"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" -c "GRANT <%= database['username'] %> TO $ADMIN_USERNAME" 2<%= '>&' %>1 
+						"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" -c "GRANT <%= database['username'] %> TO $ADMIN_USERNAME" 2<%= '>&' %>1
 					<% end %>
 
 					<% if database['options'] %>
 						log 'Adding user options'
 						<% database['options'].each do |option| %>
 							log '. option: <%= option %>'
-							"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" -c 'ALTER USER <%= database['username'] %> WITH <%= option %>' 2<%= '>&' %>1 
+							"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" -c 'ALTER USER <%= database['username'] %> WITH <%= option %>' 2<%= '>&' %>1
 						<% end %>
 					<% end %>
 				<% else %>
@@ -86,13 +94,13 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 				<% end %>
 
 				log 'Creating database: <%= database['name'] %>'
-				"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" -c "$create_db_command" 2<%= '>&' %>1 
+				"$PSQL" -d "$ADMIN_DATABASE" -U"$ADMIN_USERNAME" -h"$PG_HOST" -c "$create_db_command" 2<%= '>&' %>1
 
 				<% if database['extensions'] %>
 					log 'Creating extensions'
 					<% database['extensions'].each do |extension| %>
 						log '. extension: <%= extension %>'
-						"$PSQL" -d '<%= database['name'] %>' -U"$ADMIN_USERNAME" -h"$PG_HOST" -c 'CREATE EXTENSION IF NOT EXISTS <%= extension %>' 2<%= '>&' %>1 
+						"$PSQL" -d '<%= database['name'] %>' -U"$ADMIN_USERNAME" -h"$PG_HOST" -c 'CREATE EXTENSION IF NOT EXISTS <%= extension %>' 2<%= '>&' %>1
 					<% end %>
 				<% end %>
 			<% end %>
@@ -103,11 +111,11 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 					# Copy from S3
 					if "$S3_BOSH_CLI" -c "$S3_CONFIG_JSON" exists "$DUMP_S3_FILE"; then
 						log "Copying database dump $DUMP_S3_FILE"
-						"$S3_BOSH_CLI" -c "$S3_CONFIG_JSON" get "$DUMP_S3_FILE" "$DUMP_LOCAL_FILE" 2<%= '>&' %>1 
+						"$S3_BOSH_CLI" -c "$S3_CONFIG_JSON" get "$DUMP_S3_FILE" "$DUMP_LOCAL_FILE" 2<%= '>&' %>1
 
 						log 'Restoring database dump to <%= database['name'] %>'
 						"$PSQL" -d '<%= database['name'] %>' -U"$ADMIN_USERNAME" -h"$PG_HOST" \
-							<%= '<' %>"$DUMP_LOCAL_FILE" 2<%= '>&' %>1 
+							<%= '<' %>"$DUMP_LOCAL_FILE" 2<%= '>&' %>1
 					else
 						log "Remote backup does not exist: s3://<%= p('s3_config.bucket_name') %>/$DUMP_S3_FILE"
 					fi
