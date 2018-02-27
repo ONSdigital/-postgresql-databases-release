@@ -5,14 +5,20 @@
 
 set -e
 
-export GOPATH="$PWD/build/go"
+export GOPATH="$PWD"
 
-mkdir -p "$GOPATH" blobs
+[ -d blobs ] || mkdir -p blobs
 
-cd build/go/src/github.com/cloudfoundry/bosh-s3cli
+#cd build/go/src/github.com/cloudfoundry/bosh-s3cli
 
-go build
+#go build
 
-cd -
+#cd -
 
-cp build/go/src/github.com/cloudfoundry/bosh-s3cli/bosh-s3cli blobs/
+#cp build/go/src/github.com/cloudfoundry/bosh-s3cli/bosh-s3cli blobs/
+
+go get github.com/cloudfoundry/bosh-s3cli
+
+cp go/src/github.com/cloudfoundry/bosh-s3cli/bosh-s3cli "blobs/s3cli"
+
+chmod +x "blobs/s3cli"
