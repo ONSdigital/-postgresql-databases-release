@@ -9,16 +9,8 @@ export GOPATH="$PWD"
 
 [ -d blobs ] || mkdir -p blobs
 
-#cd build/go/src/github.com/cloudfoundry/bosh-s3cli
-
-#go build
-
-#cd -
-
-#cp build/go/src/github.com/cloudfoundry/bosh-s3cli/bosh-s3cli blobs/
-
 go get github.com/cloudfoundry/bosh-s3cli
 
-cp go/src/github.com/cloudfoundry/bosh-s3cli/bosh-s3cli "blobs/s3cli"
+cp bin/bosh-s3cli blobs/s3cli
 
 chmod +x "blobs/s3cli"
