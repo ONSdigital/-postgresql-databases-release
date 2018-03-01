@@ -31,8 +31,8 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 		# Install default extensions
 		# If we install the extenions to template1, then all new databases will have them
 		<% rdms['global_extensions'].each do |extension| %>
-			log "Installing <%= extension %>
-			"$PSQL" -d 'template1' -U"$ADMIN_USERNAME" -h"$PG_HOST" -c 'CREATE EXTENSION IF NOT EXISTS <%= extension %>' 2<%= '>&' %>1
+			log 'Installing <%= extension %>'
+			"$PSQL" -d template1 -U"$ADMIN_USERNAME" -h"$PG_HOST" -c 'CREATE EXTENSION IF NOT EXISTS <%= extension %>' 2<%= '>&' %>1
 		<% end %>
 	<% end %>
 
