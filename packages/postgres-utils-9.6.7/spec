@@ -3,4 +3,4 @@
 # grep'ing for the version will show all of the places that need updating
 name: postgres-utils-9.6.7
 files:
-  - blobs/postgresql-9.6.7.tar.gz
+- blobs/postgresql-9.6.7.tar.gz
