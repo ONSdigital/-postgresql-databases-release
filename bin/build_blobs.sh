@@ -7,10 +7,12 @@ set -e
 
 export GOPATH="$PWD"
 
-[ -d blobs ] || mkdir -p blobs
+BLOB_DIR="${1:-blobs}"
+
+[ -d "$BLOB_DIR" ] || mkdir -p "$BLOB_DIR"
 
 go get github.com/cloudfoundry/bosh-s3cli
 
-cp bin/bosh-s3cli blobs/s3cli
+cp bin/bosh-s3cli "$BLOB_DIR/s3cli"
 
-chmod +x "blobs/s3cli"
+chmod +x "$BLOB_DIR/s3cli"
