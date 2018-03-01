@@ -3,6 +3,8 @@
 
 set -ex
 
+[ -d "$BOSH_INSTALL_TARGET/bin" ] || mkdir -p "$BOSH_INSTALL_TARGET/bin"
+
 cp blobs/bosh-s3cli "$BOSH_INSTALL_TARGET/bin/"
 
 chmod +x "$BOSH_INSTALL_TARGET/bin/bosh-s3cli"
