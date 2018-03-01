@@ -13,6 +13,6 @@ BLOB_DIR="${1:-blobs}"
 
 go get github.com/cloudfoundry/bosh-s3cli
 
-cp bin/bosh-s3cli "$BLOB_DIR/s3cli"
+cp bin/bosh-s3cli "$BLOB_DIR/"
 
-chmod +x "$BLOB_DIR/s3cli"
+chmod +x "$BLOB_DIR/bosh-s3cli"

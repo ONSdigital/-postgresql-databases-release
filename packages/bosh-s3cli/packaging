@@ -3,7 +3,7 @@
 
 set -ex
 
-cp blobs/s3cli "$BOSH_INSTALL_TARGET/bin/s3cli"
+cp blobs/bosh-s3cli "$BOSH_INSTALL_TARGET/bin/"
 
-chmod +x "$BOSH_INSTALL_TARGET/bin/s3cli"
+chmod +x "$BOSH_INSTALL_TARGET/bin/bosh-s3cli"
 
