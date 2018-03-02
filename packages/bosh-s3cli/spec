@@ -1,3 +1,4 @@
 ---
 name: bosh-s3cli
+files:
 - blobs/bosh-s3cli
