@@ -18,7 +18,7 @@ PG_DUMP="$PACKAGE_DIR/bin/pg_dump"
 PG_DUMPALL="$PACKAGE_DIR/bin/pg_dumpall"
 PSQL="$PACKAGE_DIR/bin/psql"
 
-S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
+S3_CONFIG_JSON=/var/vcap/jobs/database-backup/config/s3-config.json
 
 <% p('postgresql_databases').each do |rdms| %>
 	PG_HOST='<%= rdms['postgresql_host'] %>'
@@ -31,9 +31,9 @@ S3_CONFIG_JSON=/var/vcap/packages/s3-config/config/s3-config.json
 		DUMP_LOCAL_FILE="/tmp/$DUMP_FILE"
 		DUMP_S3_FILE="databases/$DUMP_FILE"
 
-		<% if ! database['no_backup'] %>
+		<% if p('s3_config.bucket_name') || ! database['no_backup'] %>
 			# Check if the database exists, if so we do a database dump
-			if [ -f "$S3_CONFIG_JSON" ] <%= '&&' %> "$PSQL" -Atc "SELECT true -U'<%= database['username'] %>'" -h"$PG_HOST" <%= database['name'] %>' | \
+			if "$PSQL" -Atc "SELECT true -U'<%= database['username'] %>'" -h"$PG_HOST" <%= database['name'] %>' | \
 				grep -qE '^t$' || [ x'<%= database['name'] %>' = x'all' ]; then
 
 				log 'Dumping <%= database['name'] %>'
