@@ -9,10 +9,6 @@ packages:
 - postgres-utils-9.6.7
 - bosh-s3cli
 
-provides:
-- name: postgres
-  type: database
-
 properties:
    s3_config.credentials_source:
      description: S3 Credentials Source (static, env_or_profile or none)
