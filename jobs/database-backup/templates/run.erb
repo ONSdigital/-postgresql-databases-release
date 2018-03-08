@@ -31,18 +31,22 @@ S3_CONFIG_JSON=/var/vcap/jobs/database-backup/config/s3-config.json
 		DUMP_S3_FILE="databases/$DUMP_FILE"
 
 		<% if p('s3_config.bucket_name') || ! database['no_backup'] %>
-			# Check if the database exists, if so we do a database dump
-			if "$PSQL" -Atc "SELECT true -U'<%= database['username'] %>'" -h"$PG_HOST" '<%= database['name'] %>' | grep -qE '^t$'; then
+			if PGPASSWORD='<%= database['password'] %>' "$PSQL" -AtU'<%= database['username'] %>' -h"$PG_HOST" -c 'SELECT true' template1 | grep -qE '^t$'; then
+				# Check if the database exists, if so we do a database dump
+				if PGPASSWORD='<%= database['password'] %>' "$PSQL" -AtU'<%= database['username'] %>' -h"$PG_HOST" -c 'SELECT true' '<%= database['name'] %>' | grep -qE '^t$'; then
 
-				log 'Dumping <%= database['name'] %>'
-				PGPASSWORD='<%= database['password'] %>' "$PG_DUMP" --clean --if-exists --serializable-deferrable -U'<%= database['username'] %>' \
-					-h"$PG_HOST" '<%= database['name'] %>' <%= '>' %>"$DUMP_LOCAL_FILE"
+					log 'Dumping <%= database['name'] %>'
+					PGPASSWORD='<%= database['password'] %>' "$PG_DUMP" --clean --if-exists --serializable-deferrable -U'<%= database['username'] %>' \
+						-h"$PG_HOST" '<%= database['name'] %>' <%= '>' %>"$DUMP_LOCAL_FILE"
 
-				# Copy to S3
-				log "Copying $DUMP_FILE dump to s3://<%= p('s3_config.bucket_name') %>/$DUMP_S3_FILE"
-				"$S3_BOSH_CLI" -c "$S3_CONFIG_JSON" put "$DUMP_LOCAL_FILE" "$DUMP_S3_FILE" 2<%= '>&' %>1
+					# Copy to S3
+					log "Copying $DUMP_FILE dump to s3://<%= p('s3_config.bucket_name') %>/$DUMP_S3_FILE"
+					"$S3_BOSH_CLI" -c "$S3_CONFIG_JSON" put "$DUMP_LOCAL_FILE" "$DUMP_S3_FILE" 2<%= '>&' %>1
+				else
+					log 'Database does not exist: <%= database['name'] %>'
+				fi
 			else
-				log 'Database does not exist: <%= database['name'] %>'
+				log 'Unable to connect to database as "<%= database['username'] %>"'
 			fi
 		<% end %>
 	<% end %>
