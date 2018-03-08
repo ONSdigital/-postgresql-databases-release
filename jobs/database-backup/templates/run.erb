@@ -15,7 +15,6 @@ PACKAGE_DIR=/var/vcap/packages/postgres-utils-9.6.7
 S3_BOSH_CLI=/var/vcap/packages/bosh-s3cli/bin/bosh-s3cli
 
 PG_DUMP="$PACKAGE_DIR/bin/pg_dump"
-PG_DUMPALL="$PACKAGE_DIR/bin/pg_dumpall"
 PSQL="$PACKAGE_DIR/bin/psql"
 
 S3_CONFIG_JSON=/var/vcap/jobs/database-backup/config/s3-config.json
@@ -33,12 +32,11 @@ S3_CONFIG_JSON=/var/vcap/jobs/database-backup/config/s3-config.json
 
 		<% if p('s3_config.bucket_name') || ! database['no_backup'] %>
 			# Check if the database exists, if so we do a database dump
-			if "$PSQL" -Atc "SELECT true -U'<%= database['username'] %>'" -h"$PG_HOST" <%= database['name'] %>' | \
-				grep -qE '^t$' || [ x'<%= database['name'] %>' = x'all' ]; then
+			if "$PSQL" -Atc "SELECT true -U'<%= database['username'] %>'" -h"$PG_HOST" '<%= database['name'] %>' | grep -qE '^t$'; then
 
 				log 'Dumping <%= database['name'] %>'
 				PGPASSWORD='<%= database['password'] %>' "$PG_DUMP" --clean --if-exists --serializable-deferrable -U'<%= database['username'] %>' \
-					-h"$PG_HOST" '<%= database['name' ] %>' <%= '>' %>"$DUMP_LOCAL_FILE"
+					-h"$PG_HOST" '<%= database['name'] %>' <%= '>' %>"$DUMP_LOCAL_FILE"
 
 				# Copy to S3
 				log "Copying $DUMP_FILE dump to s3://<%= p('s3_config.bucket_name') %>/$DUMP_S3_FILE"
